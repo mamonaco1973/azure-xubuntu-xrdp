@@ -15,10 +15,10 @@ module "mini_ad" {
   realm             = var.realm                                      # Kerberos realm (usually UPPERCASE DNS domain)
   users_json        = local.users_json                               # JSON blob of users and passwords (built below)
   user_base_dn      = var.user_base_dn                               # Base DN for user accounts in LDAP
-  ad_admin_password = random_password.admin_password.result          # Randomized AD administrator password
+  ad_admin_password = local.passwords["admin"]                       # Randomized AD administrator password
   dns_zone          = var.dns_zone                                   # DNS zone (e.g., mcloud.mikecloud.com)
   subnet_id         = azurerm_subnet.mini_ad_subnet.id               # Subnet for AD VM placement
-  admin_password    = random_password.sysadmin_password.result       # Linux sysadmin password for AD VM
+  admin_password    = local.passwords["sysadmin"]                    # Linux sysadmin password for AD VM
 
   depends_on = [azurerm_nat_gateway.vm_nat_gateway,azurerm_subnet_nat_gateway_association.mini_ad_nat_assoc]
 
@@ -39,9 +39,9 @@ locals {
     DNS_ZONE        = var.dns_zone                           # AD-integrated DNS zone
     REALM           = var.realm                              # Kerberos realm (FQDN in uppercase)
     NETBIOS         = var.netbios                            # NetBIOS domain name
-    jsmith_password = random_password.jsmith_password.result # Random password for John Smith
-    edavis_password = random_password.edavis_password.result # Random password for Emily Davis
-    rpatel_password = random_password.rpatel_password.result # Random password for Raj Patel
-    akumar_password = random_password.akumar_password.result # Random password for Amit Kumar
+    jsmith_password = local.passwords["jsmith"]              # Random password for John Smith
+    edavis_password = local.passwords["edavis"]              # Random password for Emily Davis
+    rpatel_password = local.passwords["rpatel"]              # Random password for Raj Patel
+    akumar_password = local.passwords["akumar"]              # Random password for Amit Kumar
   })
 }
