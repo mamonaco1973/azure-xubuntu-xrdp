@@ -47,13 +47,29 @@ if [ $? -ne 0 ]; then
 fi
 cd ..
 
+# Next Phase - Build packer
+
+cd 03-packer                        # Change to Packer directory
+packer init .                       # Initialize Packer plugins
+packer build \
+  -var="client_id=$ARM_CLIENT_ID" \
+  -var="client_secret=$ARM_CLIENT_SECRET" \
+  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+  -var="tenant_id=$ARM_TENANT_ID" \
+  -var="resource_group=xubuntu-packer-rg" \
+  xubuntu_image.pkr.hcl             # Packer HCL template for Linux image
+
+cd ..                               # Return to 03-packer
+
+exit 0
+
 # --------------------------------------------------------------------------------------------------
 # Phase 2: Deploy Server Layer
 # - Provisions Samba-based AD Domain Controller (Linux VM).
 # - Discovers the Key Vault name from Azure (matching "ad-key-vault*") and passes
 #   it into Terraform as a variable.
 # --------------------------------------------------------------------------------------------------
-cd 02-servers
+cd 03-servers
 
 # Query Azure for the Key Vault created in Phase 1 (first matching "ad-key-vault*")
 vault=$(az keyvault list \

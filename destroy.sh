@@ -16,28 +16,60 @@
 
 set -e  # Exit immediately if any command fails
 
+#-------------------------------------------------------------------------------
+# Fetch latest 'xubuntu_image' from the packer resource group
+#-------------------------------------------------------------------------------
+
+xubuntu_image_name=$(az image list \
+  --resource-group xubuntu-project-rg \
+  --query "[?starts_with(name, 'xubuntu_image')]|sort_by(@, &name)[-1].name" \
+  --output tsv)
+
+echo "NOTE: Using the latest image ($xubuntu_image_name) in xubuntu-project-rg."
+
+# Fail-fast if no xubuntu_image is found
+if [ -z "$xubuntu_image_name" ]; then
+  echo "ERROR: No image with the prefix 'xubuntu_image' was found in 'xubuntu-project-rg'. Exiting."
+  exit 1
+fi
+
 # --------------------------------------------------------------------------------------------------
 # Phase 1: Destroy Server Layer
 # - Destroys the Samba-based AD Domain Controller VM and dependent resources.
 # - Retrieves the Key Vault name created in Phase 1 of deployment to ensure Terraform
 #   can clean up associated secrets and references.
 # --------------------------------------------------------------------------------------------------
-cd 02-servers
+# cd 03-servers
 
-vault=$(az keyvault list \
-  --resource-group mcloud-project-rg \
-  --query "[?starts_with(name, 'ad-key-vault')].name | [0]" \
-  --output tsv)
+# vault=$(az keyvault list \
+#   --resource-group mcloud-project-rg \
+#   --query "[?starts_with(name, 'ad-key-vault')].name | [0]" \
+#   --output tsv)
 
-echo "NOTE: Key vault for secrets is $vault"
+# echo "NOTE: Key vault for secrets is $vault"
 
-terraform init   # Initialize Terraform working directory (re-download providers/modules if needed)
-terraform destroy -var="vault_name=$vault" -auto-approve   # Destroy VM and dependent resources
+# terraform init   # Initialize Terraform working directory (re-download providers/modules if needed)
+# terraform destroy -var="vault_name=$vault" -auto-approve   # Destroy VM and dependent resources
 
-cd ..
+# cd ..
+
+#-------------------------------------------------------------------------------
+# Loop through and delete ALL images in 'xubuntu-project-rg' (fire-and-forget)
+#-------------------------------------------------------------------------------
+
+az image list \
+  --resource-group "xubuntu-project-rg" \
+  --query "[].name" \
+  -o tsv | while read -r IMAGE; do
+    echo "Deleting image: $IMAGE"
+    az image delete \
+      --name "$IMAGE" \
+      --resource-group "xubuntu-project-rg" \
+      || echo "Failed to delete $IMAGE — skipping"
+done
 
 # --------------------------------------------------------------------------------------------------
-# Phase 2: Destroy Directory Layer
+# Phase 3: Destroy Directory Layer
 # - Removes foundational resources such as Key Vault and resource group–scoped roles.
 # - This must run after servers are removed, since they may depend on secrets stored in Key Vault.
 # --------------------------------------------------------------------------------------------------
