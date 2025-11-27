@@ -27,7 +27,7 @@ windows_dns=$(az network public-ip show \
   --output tsv 2>/dev/null)
 
 if [ -z "$windows_dns" ]; then
-  echo "WARN: No DNS label found for windows-vm-public-ip"
+  echo "ERROR: No DNS label found for windows-vm-public-ip"
 else
   echo "NOTE: Windows Admin Instance FQDN: $windows_dns"
 fi
@@ -42,7 +42,7 @@ xubuntu_dns=$(az network public-ip show \
   --output tsv 2>/dev/null)
 
 if [ -z "$xubuntu_dns" ]; then
-  echo "WARN: No DNS label found for xubuntu-public-ip"
+  echo "ERROR: No DNS label found for xubuntu-public-ip"
 else
   echo "NOTE: Xubuntu Instance FQDN: $xubuntu_dns"
 fi
