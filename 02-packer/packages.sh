@@ -2,14 +2,10 @@
 set -euo pipefail
 
 # ==========================================================================================
-# SYSTEM PREP AND PACKAGE INSTALLATION FOR AD JOIN + EFS + AWS CLI
-# ==========================================================================================
 # This script prepares an Ubuntu host for:
 #   - Active Directory domain joins using realmd, SSSD, and adcli
 #   - NSS/PAM integration for domain users and automatic home directory creation
 #   - Samba utilities required for Kerberos, NTLM, and domain discovery
-#   - NFS and EFS client support (TLS-enabled amazon-efs-utils)
-#   - AWS CLI v2 for accessing AWS services (Secrets Manager, S3, etc.)
 # ==========================================================================================
 
 # ------------------------------------------------------------------------------------------
@@ -42,20 +38,18 @@ apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
     oddjob-mkhomedir packagekit krb5-user nano vim nfs-common \
     winbind libpam-winbind libnss-winbind stunnel4 jq
 
-# ------------------------------------------------------------------------------------------
-# Install Amazon EFS Utilities
-# ------------------------------------------------------------------------------------------
-# amazon-efs-utils provides:
-#   - "mount.efs" wrapper for NFS mounts with TLS support (via stunnel)
-#   - Integration with AWS APIs for fetching EFS mount targets
-# The package is not in Ubuntu 24.04 repos, so it is cloned and installed manually.
-# Output from dpkg and validation checks are logged to /root/userdata.log.
-# ------------------------------------------------------------------------------------------
-cd /tmp
-git clone https://github.com/mamonaco1973/amazon-efs-utils.git
+# ---------------------------------------------------------------------------------
+# Install AZ NFS Helper
+# ---------------------------------------------------------------------------------
 
-cd amazon-efs-utils
-dpkg -i amazon-efs-utils*.deb >> /root/userdata.log 2>&1
-which mount.efs >> /root/userdata.log 2>&1
+curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor --yes \
+  -o /etc/apt/keyrings/microsoft.gpg
 
+echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] \
+https://packages.microsoft.com/ubuntu/22.04/prod jammy main" \
+  | sudo tee /etc/apt/sources.list.d/aznfs.list
 
+echo "aznfs aznfs/enable_autoupdate boolean true" | sudo debconf-set-selections
+
+apt-get update -y
+apt-get install -y aznfs  

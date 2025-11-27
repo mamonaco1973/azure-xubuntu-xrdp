@@ -5,33 +5,7 @@
 # up permissions.
 
 # ---------------------------------------------------------------------------------
-# Section 1: Update the OS and Install Required Packages
-# ---------------------------------------------------------------------------------
-
-# Update the package list to ensure the latest versions of packages are available.
-apt-get update -y
-
-# Set the environment variable to prevent interactive prompts during installation.
-export DEBIAN_FRONTEND=noninteractive
-
-# ---------------------------------------------------------------------------------
-# Section 3: Install AZ NFS Helper
-# ---------------------------------------------------------------------------------
-
-curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo gpg --dearmor --yes \
-  -o /etc/apt/keyrings/microsoft.gpg
-
-echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] \
-https://packages.microsoft.com/ubuntu/22.04/prod jammy main" \
-  | sudo tee /etc/apt/sources.list.d/aznfs.list
-
-echo "aznfs aznfs/enable_autoupdate boolean true" | sudo debconf-set-selections
-
-apt-get update -y
-apt-get install -y aznfs  >> /root/userdata.log 2>&1
-
-# ---------------------------------------------------------------------------------
-# Section 4: Mount NFS file system
+# Section 1: Mount NFS file system
 # ---------------------------------------------------------------------------------
 
 mkdir -p /nfs
@@ -48,7 +22,7 @@ systemctl daemon-reload
 mount /home
 
 # ---------------------------------------------------------------------------------
-# Section 5: Configure AD as the identity provider
+# Section 2: Configure AD as the identity provider
 # ---------------------------------------------------------------------------------
 
 az login --identity --allow-no-subscriptions
@@ -61,7 +35,7 @@ echo -e "$admin_password" | sudo /usr/sbin/realm join --membership-software=samb
     -U "$admin_username" ${domain_fqdn} --verbose >> /root/join.log 2>&1
 
 # ---------------------------------------------------------------------------------
-# Section 6: Configure SSSD for AD Integration
+# Section 3: Configure SSSD for AD Integration
 # ---------------------------------------------------------------------------------
 
 # Modify the SSSD configuration file to simplify user login and home directory creation.
@@ -196,7 +170,7 @@ sudo rm /tmp/nsswitch.conf
 sudo systemctl restart winbind smb nmb sssd
 
 # ---------------------------------------------------------------------------------
-# Section 8: Grant Sudo Privileges to AD Linux Admins
+# Section 4: Grant Sudo Privileges to AD Linux Admins
 # ---------------------------------------------------------------------------------
 
 # Add a sudoers rule to grant passwordless sudo access to members of the
@@ -204,7 +178,7 @@ sudo systemctl restart winbind smb nmb sssd
 sudo echo "%linux-admins ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/10-linux-admins
 
 # ---------------------------------------------------------------------------------
-# Section 9: Enforce Home Directory Permissions
+# Section 5: Enforce Home Directory Permissions
 # ---------------------------------------------------------------------------------
 # Force new home directories to have mode 0700 (private)
 sudo sed -i 's/^\(\s*HOME_MODE\s*\)[0-9]\+/\10700/' /etc/login.defs
@@ -224,6 +198,19 @@ chmod 770 /nfs/data
 chmod 700 /home/*
 
 cd /nfs
-git clone https://github.com/mamonaco1973/azure-nfs-files.git
-chmod -R 775 azure-nfs-files
-chgrp -R mcloud-users azure-nfs-files
+git clone https://github.com/mamonaco1973/azure-xubuntu-xrdp.git
+chmod -R 775 azure-xubuntu-xrdp
+chgrp -R mcloud-users azure-xubuntu-xrdp
+
+git clone https://github.com/mamonaco1973/aws-setup.git
+chmod -R 775 aws-setup
+chgrp -R mcloud-users aws-setup
+
+git clone https://github.com/mamonaco1973/azure-setup.git
+chmod -R 775 azure-setup
+chgrp -R mcloud-users azure-setup
+
+git clone https://github.com/mamonaco1973/gcp-setup.git
+chmod -R 775 gcp-setup
+chgrp -R mcloud-users gcp-setup
+
