@@ -63,7 +63,7 @@ data "azurerm_resource_group" "xubuntu" {
 # Fetch details about the specified Resource Group
 # --------------------------------------------------------------------------------------------------
 data "azurerm_resource_group" "network" {
-  name = var.resource_group_name
+  name = var.network_resource_group_name
 }
 
 
