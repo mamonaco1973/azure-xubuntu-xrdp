@@ -85,8 +85,8 @@ resource "azurerm_private_dns_zone_virtual_network_link" "file_link" {
 # ================================================================================================
 resource "azurerm_private_endpoint" "pe_file" {
   name                = "pe-st-file"
-  location            = data.azurerm_resource_group.ad.location
-  resource_group_name = data.azurerm_resource_group.ad.name
+  location            = data.azurerm_resource_group.xubuntu.location
+  resource_group_name = data.azurerm_resource_group.xubuntu.name
   subnet_id           = data.azurerm_subnet.vm_subnet.id
 
   # --------------------------------------------------------------------------------------------

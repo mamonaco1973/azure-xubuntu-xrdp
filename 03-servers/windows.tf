@@ -114,7 +114,7 @@ resource "azurerm_virtual_machine_extension" "join_script" {
 
   depends_on = [
     azurerm_role_assignment.vm_win_key_vault_secrets_user,
-    azurerm_linux_virtual_machine.nfs_gateway
+    azurerm_linux_virtual_machine.xubuntu_instance
   ]
 }
 
