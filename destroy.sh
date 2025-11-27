@@ -1,81 +1,73 @@
 #!/bin/bash
-# ==================================================================================================
-# Destroy Script for Mini Active Directory Deployment (Azure)
+# ==============================================================================
+# Destroy Script for Xubuntu XRDP Project on Azure
 # Purpose:
-#   - Tears down the Mini Active Directory environment in reverse order of deployment.
-#   - Ensures servers (AD VM + supporting resources) are destroyed before the directory layer (Key Vault).
-#   - Automates discovery of the Key Vault name to cleanly remove all resources.
-#
+#   - Removes all Xubuntu XRDP project resources deployed in Azure.
+#   - Destroys server layer first, then directory layer.
+#   - Deletes the latest Xubuntu image and all older images.
 # Notes:
-#   - Use with caution: This script will **permanently delete all deployed resources**.
-#   - Order matters:
-#       1. Server layer destroyed first (VM, networking, role assignments).
-#       2. Directory layer destroyed last (Key Vault, base infra).
-#   - Assumes `az` (Azure CLI) and `terraform` are installed and authenticated.
-# ==================================================================================================
+#   - This will permanently delete all deployed resources.
+#   - Assumes Azure CLI and Terraform are installed and authenticated.
+# ==============================================================================
 
-set -e  # Exit immediately if any command fails
+set -e
 
-#-------------------------------------------------------------------------------
-# Fetch latest 'xubuntu_image' from the packer resource group
-#-------------------------------------------------------------------------------
-
+# ------------------------------------------------------------------------------
+# Fetch latest Xubuntu image from the packer resource group
+# ------------------------------------------------------------------------------
 xubuntu_image_name=$(az image list \
   --resource-group xubuntu-project-rg \
   --query "[?starts_with(name, 'xubuntu_image')]|sort_by(@, &name)[-1].name" \
   --output tsv)
 
-echo "NOTE: Using the latest image ($xubuntu_image_name) in xubuntu-project-rg."
+echo "Using latest image: $xubuntu_image_name"
 
-# Fail-fast if no xubuntu_image is found
 if [ -z "$xubuntu_image_name" ]; then
-  echo "ERROR: No image with the prefix 'xubuntu_image' was found in 'xubuntu-project-rg'. Exiting."
+  echo "ERROR: No Xubuntu image found in xubuntu-project-rg."
   exit 1
 fi
 
-# --------------------------------------------------------------------------------------------------
-# Phase 1: Destroy Server Layer
-# - Destroys the Samba-based AD Domain Controller VM and dependent resources.
-# - Retrieves the Key Vault name created in Phase 1 of deployment to ensure Terraform
-#   can clean up associated secrets and references.
-# --------------------------------------------------------------------------------------------------
-# cd 03-servers
+# ------------------------------------------------------------------------------
+# Phase 1: Destroy server layer (VMs, networking, bindings)
+# ------------------------------------------------------------------------------
+cd 03-servers
 
-# vault=$(az keyvault list \
-#   --resource-group mcloud-project-rg \
-#   --query "[?starts_with(name, 'ad-key-vault')].name | [0]" \
-#   --output tsv)
+vault=$(az keyvault list \
+  --resource-group mcloud-project-rg \
+  --query "[?starts_with(name, 'ad-key-vault')].name | [0]" \
+  --output tsv)
 
-# echo "NOTE: Key vault for secrets is $vault"
+echo "Using Key Vault: $vault"
 
-# terraform init   # Initialize Terraform working directory (re-download providers/modules if needed)
-# terraform destroy -var="vault_name=$vault" -auto-approve   # Destroy VM and dependent resources
+terraform init
+terraform destroy \
+  -var="vault_name=$vault" \
+  -var="xubuntu_image_name=$xubuntu_image_name" \
+  -auto-approve
 
-# cd ..
+cd ..
 
-#-------------------------------------------------------------------------------
-# Loop through and delete ALL images in 'xubuntu-project-rg' (fire-and-forget)
-#-------------------------------------------------------------------------------
-
+# ------------------------------------------------------------------------------
+# Delete all Xubuntu images in xubuntu-project-rg
+# ------------------------------------------------------------------------------
 az image list \
-  --resource-group "xubuntu-project-rg" \
+  --resource-group xubuntu-project-rg \
   --query "[].name" \
   -o tsv | while read -r IMAGE; do
     echo "Deleting image: $IMAGE"
     az image delete \
       --name "$IMAGE" \
-      --resource-group "xubuntu-project-rg" \
-      || echo "Failed to delete $IMAGE — skipping"
+      --resource-group xubuntu-project-rg \
+      || echo "Failed to delete $IMAGE; skipping"
 done
 
-# --------------------------------------------------------------------------------------------------
-# Phase 3: Destroy Directory Layer
-# - Removes foundational resources such as Key Vault and resource group–scoped roles.
-# - This must run after servers are removed, since they may depend on secrets stored in Key Vault.
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Phase 2: Destroy directory layer (Key Vault, baseline infra)
+# ------------------------------------------------------------------------------
 cd 01-directory
 
 terraform init
-terraform destroy -auto-approve   # Destroy Key Vault and supporting resources
+terraform destroy -auto-approve
 
 cd ..
+echo "NOTE: Xubuntu XRDP project resources have been successfully destroyed."

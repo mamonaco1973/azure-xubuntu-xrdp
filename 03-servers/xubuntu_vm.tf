@@ -35,7 +35,7 @@ resource "azurerm_public_ip" "xubuntu_public_ip" {
   name                = "xubuntu-public-ip"
   location            = data.azurerm_resource_group.xubuntu.location
   resource_group_name = data.azurerm_resource_group.xubuntu.name
-
+  domain_name_label = "xubuntu-${random_string.vm_suffix.result}"
   allocation_method = "Static"
   sku               = "Standard"
 }
