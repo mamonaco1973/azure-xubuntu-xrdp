@@ -3,18 +3,13 @@ set -euo pipefail
 
 # ================================================================================
 # Xubuntu Minimal Desktop + XFCE Enhancements Installation Script
+# Azure-Safe Version (Prevents Networking Failure on Reboot)
 # ================================================================================
 # Description:
-#   Installs the Xubuntu minimal desktop environment along with clipboard tools,
-#   terminal emulator utilities, and XFCE enhancements. The script also sets the
-#   system-wide default terminal emulator and updates the default background
-#   image by modifying the XFCE wallpaper assets. Desktop shortcuts are enabled
-#   for all future users by preparing /etc/skel/Desktop.
-#
-# Notes:
-#   - Uses apt-get for stable automation behavior.
-#   - XFCE background modification replaces the shapes wallpaper with leaves.
-#   - Script exits immediately on any error due to 'set -euo pipefail'.
+#   Installs Xubuntu minimal desktop environment and ensures the final Azure VM
+#   uses systemd-networkd instead of NetworkManager. This prevents Azure reboot
+#   issues where SSH/XRDP fail because NetworkManager overwrites netplan or
+#   races cloud-init on boot.
 # ================================================================================
 
 # ================================================================================
@@ -22,6 +17,29 @@ set -euo pipefail
 # ================================================================================
 sudo apt-get update -y
 sudo apt-get install -y xubuntu-desktop-minimal
+
+# ================================================================================
+# Step 1B: REMOVE NETWORKMANAGER (Critical for Azure Stability)
+# ================================================================================
+# NetworkManager gets reinstalled by the desktop packages — remove it now.
+sudo apt-get remove --purge -y network-manager
+sudo apt-get autoremove -y
+
+# Prevent cloud-init or desktop packages from switching to NetworkManager again.
+sudo mkdir -p /etc/cloud/cloud.cfg.d
+echo "network: {config: disabled}" \
+  | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+
+# Provide a clean Azure-friendly netplan configuration.
+sudo tee /etc/netplan/01-azure.yaml >/dev/null <<EOF
+network:
+  version: 2
+  ethernets:
+    eth0:
+      dhcp4: true
+EOF
+
+sudo netplan generate
 
 # ================================================================================
 # Step 2: Install clipboard utilities and XFCE enhancements
@@ -56,10 +74,10 @@ sudo mkdir -p /etc/skel/Desktop
 # ================================================================================
 cd /usr/share/backgrounds/xfce
 
-# Backup the original wallpaper to preserve system assets
+# Backup the original wallpaper
 sudo mv xfce-shapes.svg xfce-shapes.svg.bak
 
-# Replace wallpaper with a known-good XFCE SVG file
+# Replace wallpaper with existing known-good asset
 sudo cp xfce-leaves.svg xfce-shapes.svg
-echo "NOTE: Xubuntu minimal desktop and XFCE enhancements installation complete."
 
+echo "NOTE: Xubuntu minimal desktop + Azure-safe networking configuration complete."
