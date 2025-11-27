@@ -14,28 +14,6 @@ apt-get update -y
 # Set the environment variable to prevent interactive prompts during installation.
 export DEBIAN_FRONTEND=noninteractive
 
-# Install packages needed for:
-#   - Active Directory integration: realmd, sssd-ad, adcli, krb5-user
-#   - NSS/PAM integration: libnss-sss, libpam-sss, winbind, libpam-winbind, libnss-winbind
-#   - Samba file services: samba, samba-common-bin, samba-libs
-#   - Home directory automation: oddjob, oddjob-mkhomedir
-#   - Utilities: less, unzip, nano, vim, nfs-common, stunnel4
-apt-get install -y less unzip realmd sssd-ad sssd-tools libnss-sss \
-    libpam-sss adcli samba samba-common-bin samba-libs oddjob \
-    oddjob-mkhomedir packagekit krb5-user nano vim nfs-common \
-    winbind libpam-winbind libnss-winbind stunnel4 >> /root/userdata.log 2>&1
-
-# ---------------------------------------------------------------------------------
-# Section 2: Install AZ CLI
-# ---------------------------------------------------------------------------------
-
-curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | tee /etc/apt/keyrings/microsoft-azure-cli-archive-keyring.gpg > /dev/null
-AZ_REPO=$(lsb_release -cs)
-echo "deb [signed-by=/etc/apt/keyrings/microsoft-azure-cli-archive-keyring.gpg] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" \
-    | tee /etc/apt/sources.list.d/azure-cli.list
-apt-get update -y
-apt-get install -y azure-cli  >> /root/userdata.log 2>&1
-
 # ---------------------------------------------------------------------------------
 # Section 3: Install AZ NFS Helper
 # ---------------------------------------------------------------------------------

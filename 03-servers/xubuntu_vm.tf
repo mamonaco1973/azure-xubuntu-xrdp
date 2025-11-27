@@ -77,12 +77,7 @@ resource "azurerm_linux_virtual_machine" "xubuntu_instance" {
     storage_account_type = "Standard_LRS"
   }
 
-  source_image_reference {
-    publisher = "canonical"
-    offer     = "ubuntu-24_04-lts"
-    sku       = "server"
-    version   = "latest"
-  }
+  source_image_id = data.azurerm_image.xubuntu_image.id
 
   custom_data = base64encode(templatefile(
     "./scripts/custom_data.sh",

@@ -36,6 +36,12 @@ variable "resource_group_name" {
   default     = "xubuntu-project-rg"
 }
 
+variable "network_resource_group_name" {
+  description = "The name of the Azure Resource Group for network resources"
+  type        = string
+  default     = "xubuntu-network-rg"
+}
+
 # --------------------------------------------------------------------------------------------------
 # Input variable: Key Vault name
 # - Can be set via CLI, TFVARS, or overridden at apply time
@@ -54,11 +60,19 @@ data "azurerm_resource_group" "xubuntu" {
 }
 
 # --------------------------------------------------------------------------------------------------
+# Fetch details about the specified Resource Group
+# --------------------------------------------------------------------------------------------------
+data "azurerm_resource_group" "network" {
+  name = var.resource_group_name
+}
+
+
+# --------------------------------------------------------------------------------------------------
 # Fetch details about existing Virtual Network
 # --------------------------------------------------------------------------------------------------
 data "azurerm_virtual_network" "ad_vnet" {
   name                = "ad-vnet"
-  resource_group_name = data.azurerm_resource_group.xubuntu.name
+  resource_group_name = data.azurerm_resource_group.network.name
 }
 
 # --------------------------------------------------------------------------------------------------
@@ -66,7 +80,7 @@ data "azurerm_virtual_network" "ad_vnet" {
 # --------------------------------------------------------------------------------------------------
 data "azurerm_subnet" "vm_subnet" {
   name                 = "vm-subnet"
-  resource_group_name  = data.azurerm_resource_group.xubuntu.name
+  resource_group_name  = data.azurerm_resource_group.network.name
   virtual_network_name = data.azurerm_virtual_network.ad_vnet.name
 }
 
@@ -75,5 +89,17 @@ data "azurerm_subnet" "vm_subnet" {
 # --------------------------------------------------------------------------------------------------
 data "azurerm_key_vault" "ad_key_vault" {
   name                = var.vault_name
-  resource_group_name = var.resource_group_name
+  resource_group_name = var.network_resource_group_name
 }
+
+
+variable "xubuntu_image_name" {
+  description = "Name of the custom Azure linux image"   # Human-readable explanation of the variable's purpose
+  type        = string                                   # Enforce the input type as a string (required for validation and clarity)
+                                                         # This value is typically passed in via CLI, tfvars, or environment
+}
+
+data "azurerm_image" "xubuntu_image" {
+  name                = var.xubuntu_image_name                               # Custom image name passed in as variable
+  resource_group_name = data.azurerm_resource_group.xubuntu.name             # Use resource group where the image is stored
+} 

@@ -97,6 +97,9 @@ vault=$(az keyvault list \
 echo "NOTE: Key vault for secrets is $vault"
 
 terraform init   # Initialize Terraform in server layer
-terraform apply -var="vault_name=$vault" -auto-approve   # Deploy VM, configure Samba AD
+terraform apply \
+    -var="vault_name=$vault" \
+    -var="xubuntu_image_name=$xubuntu_image_name" \
+    -auto-approve   
 
 cd ..
