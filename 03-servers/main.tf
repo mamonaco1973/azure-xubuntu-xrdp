@@ -49,7 +49,7 @@ variable "vault_name" {
 # --------------------------------------------------------------------------------------------------
 # Fetch details about the specified Resource Group
 # --------------------------------------------------------------------------------------------------
-data "azurerm_resource_group" "ad" {
+data "azurerm_resource_group" "xubuntu" {
   name = var.resource_group_name
 }
 
@@ -58,7 +58,7 @@ data "azurerm_resource_group" "ad" {
 # --------------------------------------------------------------------------------------------------
 data "azurerm_virtual_network" "ad_vnet" {
   name                = "ad-vnet"
-  resource_group_name = data.azurerm_resource_group.ad.name
+  resource_group_name = data.azurerm_resource_group.xubuntu.name
 }
 
 # --------------------------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ data "azurerm_virtual_network" "ad_vnet" {
 # --------------------------------------------------------------------------------------------------
 data "azurerm_subnet" "vm_subnet" {
   name                 = "vm-subnet"
-  resource_group_name  = data.azurerm_resource_group.ad.name
+  resource_group_name  = data.azurerm_resource_group.xubuntu.name
   virtual_network_name = data.azurerm_virtual_network.ad_vnet.name
 }
 

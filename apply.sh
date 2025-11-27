@@ -49,19 +49,19 @@ cd ..
 
 # Next Phase - Build packer
 
-cd 02-packer                        # Change to Packer directory
-packer init .                       # Initialize Packer plugins
-packer build \
-  -var="client_id=$ARM_CLIENT_ID" \
-  -var="client_secret=$ARM_CLIENT_SECRET" \
-  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
-  -var="tenant_id=$ARM_TENANT_ID" \
-  -var="resource_group=xubuntu-project-rg" \
-  xubuntu_image.pkr.hcl             # Packer HCL template for Linux image
+#cd 02-packer                        # Change to Packer directory
+#packer init .                       # Initialize Packer plugins
+#packer build \
+#  -var="client_id=$ARM_CLIENT_ID" \
+#  -var="client_secret=$ARM_CLIENT_SECRET" \
+#  -var="subscription_id=$ARM_SUBSCRIPTION_ID" \
+#  -var="tenant_id=$ARM_TENANT_ID" \
+#  -var="resource_group=xubuntu-project-rg" \
+#  xubuntu_image.pkr.hcl             # Packer HCL template for Linux image
 
-cd ..                               # Return to 02-packer
+#cd ..                               # Return to 02-packer
 
-exit 0
+#exit 0
 
 # --------------------------------------------------------------------------------------------------
 # Phase 2: Deploy Server Layer
@@ -70,6 +70,23 @@ exit 0
 #   it into Terraform as a variable.
 # --------------------------------------------------------------------------------------------------
 cd 03-servers
+
+#-------------------------------------------------------------------------------
+# Fetch latest 'xubuntu_image' from the packer resource group
+#-------------------------------------------------------------------------------
+
+xubuntu_image_name=$(az image list \
+  --resource-group xubuntu-project-rg \
+  --query "[?starts_with(name, 'xubuntu_image')]|sort_by(@, &name)[-1].name" \
+  --output tsv)
+
+echo "NOTE: Using the latest image ($xubuntu_image_name) in xubuntu-project-rg."
+
+# Fail-fast if no xubuntu_image is found
+if [ -z "$xubuntu_image_name" ]; then
+  echo "ERROR: No image with the prefix 'xubuntu_image' was found in 'xubuntu-project-rg'. Exiting."
+  exit 1
+fi
 
 # Query Azure for the Key Vault created in Phase 1 (first matching "ad-key-vault*")
 vault=$(az keyvault list \
