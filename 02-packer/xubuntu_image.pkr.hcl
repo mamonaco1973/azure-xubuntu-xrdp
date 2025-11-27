@@ -81,8 +81,9 @@ source "azure-arm" "xubuntu_image" {
   tenant_id       = var.tenant_id
 
   image_publisher = "Canonical"
-  image_offer     = "0001-com-ubuntu-server-noble"
-  image_sku       = "24_04-lts"
+  image_offer     = "ubuntu-24_04-lts"
+  image_sku       = "server"
+  image_version   = "latest"
 
   location        = var.location
   vm_size         = var.vm_size
