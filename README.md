@@ -204,7 +204,7 @@ Follow these steps to provision a new user in the Active Directory domain and va
    - Open **PowerShell** on the AD server.  
    - Run the script located at:  
      ```powershell
-     Z:\efs\aws-xubuntu-xrdp\04-utils\getNextUID.bat
+     Z:\azure-xubuntu-xrdp\04-utils\getNextUID.bat
      ```  
    - This script returns the next available **`uidNumber`** to assign to the new account.  
 
@@ -245,4 +245,4 @@ When you are finished testing, you can remove all provisioned resources with:
 ./destroy.sh
 ```
 
-This will use Terraform to delete the VPC, EC2 instances, IAM roles, security groups, and any other infrastructure created by the project. Secrets stored in AWS Secrets Manager will also be deleted unless retention policies are configured.
+This will remove all Azure resources created by the project — including the resource group, virtual network, subnets, network security groups, public IPs, NICs, the Xubuntu VM, and any supporting infrastructure. Secrets stored in Azure Key Vault will also be deleted unless a retention policy prevents their removal.
