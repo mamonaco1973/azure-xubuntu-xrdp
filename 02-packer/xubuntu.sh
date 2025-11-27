@@ -71,6 +71,12 @@ network:
       dhcp4: true
 EOF
 
+
+# >>> FIX FILE PERMISSIONS (netplan requires 600 and root:root) <<<
+sudo chmod 600 /etc/netplan/01-azure.yaml
+sudo chown root:root /etc/netplan/01-azure.yaml
+
+# Apply the netplan configuration
 sudo netplan generate
 
 
