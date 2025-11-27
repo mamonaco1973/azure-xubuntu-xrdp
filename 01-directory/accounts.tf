@@ -1,11 +1,12 @@
 # ==============================================================================
-# Friendly Password Generator for Azure AD Users
-# - Builds passwords as <word>-<number>
-# - Stores each user's creds in Azure Key Vault as JSON
+# Friendly password generator (all accounts)
+# ------------------------------------------------------------------------------
+# Builds passwords for every AD-related account using <word>-<number>.
+# All passwords stored in local.passwords for consistent referencing.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# Word list used to build memorable passwords
+# Word list used for memorable passwords
 # ------------------------------------------------------------------------------
 locals {
   memorable_words = [
@@ -18,132 +19,70 @@ locals {
 }
 
 # ------------------------------------------------------------------------------
-# AD users (key = username prefix, value = full name)
+# All AD accounts (admin, sysadmin, sample users)
 # ------------------------------------------------------------------------------
 locals {
-  ad_users = {
-    jsmith = "John Smith"
-    edavis = "Emily Davis"
-    rpatel = "Raj Patel"
-    akumar = "Amit Kumar"
+  ad_accounts = {
+    admin    = "Admin"
+    sysadmin = "Sysadmin"
+    jsmith   = "John Smith"
+    edavis   = "Emily Davis"
+    rpatel   = "Raj Patel"
+    akumar   = "Amit Kumar"
   }
 }
 
 # ------------------------------------------------------------------------------
-# Pick one random word per user
+# Pick one random word per account
 # ------------------------------------------------------------------------------
 resource "random_shuffle" "word" {
-  for_each     = local.ad_users
+  for_each     = local.ad_accounts
   input        = local.memorable_words
   result_count = 1
 }
 
 # ------------------------------------------------------------------------------
-# Generate a random 6-digit number per user
+# Pick one random 6-digit number per account
 # ------------------------------------------------------------------------------
 resource "random_integer" "num" {
-  for_each = local.ad_users
+  for_each = local.ad_accounts
   min      = 100000
   max      = 999999
 }
 
 # ------------------------------------------------------------------------------
-# Build final passwords as <word>-<number>
+# Build all passwords as <word>-<number> for every account
 # ------------------------------------------------------------------------------
 locals {
   passwords = {
-    for u, _ in local.ad_users :
+    for u, _ in local.ad_accounts :
     u => "${random_shuffle.word[u].result[0]}-${random_integer.num[u].result}"
   }
 }
 
+# ==============================================================================
+# Key Vault secrets for all accounts
 # ------------------------------------------------------------------------------
-# Create an Azure Key Vault secret per user
-# ------------------------------------------------------------------------------
-resource "azurerm_key_vault_secret" "user_secret" {
-  for_each = local.ad_users
+# Username rules:
+#   admin    → Admin@<dns_zone>
+#   sysadmin → sysadmin
+#   users    → <username>@<dns_zone>
+# ==============================================================================
+resource "azurerm_key_vault_secret" "account_secret" {
+  for_each = local.ad_accounts
 
-  name         = "${each.key}-ad-credentials"
+  name         = "${each.key}-credentials"
   key_vault_id = azurerm_key_vault.ad_key_vault.id
+  content_type = "application/json"
 
   value = jsonencode({
-    username = "${each.key}@${var.dns_zone}"
+    username = (
+      each.key == "admin"    ? "Admin@${var.dns_zone}" :
+      each.key == "sysadmin" ? "sysadmin" :
+                               "${each.key}@${var.dns_zone}"
+    )
     password = local.passwords[each.key]
   })
 
-  depends_on   = [azurerm_role_assignment.kv_role_assignment]
-  content_type = "application/json"
-}
-
-# ==============================================================================
-# Sysadmin account (local AD service account)
-# Password also uses friendly format
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
-# Random word for sysadmin
-# ------------------------------------------------------------------------------
-resource "random_shuffle" "sys_word" {
-  input        = local.memorable_words
-  result_count = 1
-}
-
-# ------------------------------------------------------------------------------
-# Random 6-digit number for sysadmin
-# ------------------------------------------------------------------------------
-resource "random_integer" "sys_num" {
-  min = 100000
-  max = 999999
-}
-
-# ------------------------------------------------------------------------------
-# Store sysadmin credentials in Key Vault
-# ------------------------------------------------------------------------------
-resource "azurerm_key_vault_secret" "sysadmin_secret" {
-  name         = "sysadmin-credentials"
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
-
-  value = jsonencode({
-    username = "sysadmin"
-    password = "${random_shuffle.sys_word.result[0]}-${random_integer.sys_num.result}"
-  })
-
-  depends_on   = [azurerm_role_assignment.kv_role_assignment]
-  content_type = "application/json"
-}
-
-# ==============================================================================
-# Admin (domain admin) account using friendly password format
-# ==============================================================================
-
-# ------------------------------------------------------------------------------
-# Random word for admin
-# ------------------------------------------------------------------------------
-resource "random_shuffle" "admin_word" {
-  input        = local.memorable_words
-  result_count = 1
-}
-
-# ------------------------------------------------------------------------------
-# Random 6-digit number for admin
-# ------------------------------------------------------------------------------
-resource "random_integer" "admin_num" {
-  min = 100000
-  max = 999999
-}
-
-# ------------------------------------------------------------------------------
-# Store admin credentials in Key Vault
-# ------------------------------------------------------------------------------
-resource "azurerm_key_vault_secret" "admin_secret" {
-  name         = "admin-ad-credentials"
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
-
-  value = jsonencode({
-    username = "Admin@${var.dns_zone}"
-    password = "${random_shuffle.admin_word.result[0]}-${random_integer.admin_num.result}"
-  })
-
-  depends_on   = [azurerm_role_assignment.kv_role_assignment]
-  content_type = "application/json"
+  depends_on = [azurerm_role_assignment.kv_role_assignment]
 }
