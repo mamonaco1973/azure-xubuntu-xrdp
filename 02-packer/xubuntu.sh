@@ -51,35 +51,6 @@ EOF
 sudo systemctl mask NetworkManager.service 2>/dev/null || true
 sudo systemctl mask NetworkManager-wait-online.service 2>/dev/null || true
 
-
-# ================================================================================
-# Step 1D: RESTORE AZURE-NATIVE CLOUD-INIT + NETPLAN NETWORKING
-# ================================================================================
-# NetworkManager modifies netplan. Restore Azure's expected configuration.
-
-# Prevent cloud-init from switching to NetworkManager mode
-sudo mkdir -p /etc/cloud/cloud.cfg.d
-echo "network: {config: disabled}" \
-  | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
-
-# Provide a clean, Azure-friendly netplan config
-sudo tee /etc/netplan/01-azure.yaml >/dev/null <<EOF
-network:
-  version: 2
-  ethernets:
-    eth0:
-      dhcp4: true
-EOF
-
-
-# >>> FIX FILE PERMISSIONS (netplan requires 600 and root:root) <<<
-sudo chmod 600 /etc/netplan/01-azure.yaml
-sudo chown root:root /etc/netplan/01-azure.yaml
-
-# Apply the netplan configuration
-sudo netplan generate
-
-
 # ================================================================================
 # Step 2: Install clipboard utilities and XFCE enhancements
 # ================================================================================
