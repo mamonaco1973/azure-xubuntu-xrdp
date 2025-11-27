@@ -33,11 +33,11 @@ fi
 cd 03-servers
 
 vault=$(az keyvault list \
-  --resource-group mcloud-project-rg \
+  --resource-group xubuntu-network-rg \
   --query "[?starts_with(name, 'ad-key-vault')].name | [0]" \
   --output tsv)
 
-echo "Using Key Vault: $vault"
+echo "NOTE: Using Key Vault: $vault"
 
 terraform init
 terraform destroy \
