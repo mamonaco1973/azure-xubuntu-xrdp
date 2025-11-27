@@ -9,7 +9,7 @@
 
 module "mini_ad" {
   source            = "github.com/mamonaco1973/module-azure-mini-ad" # Path to the mini-ad Terraform module
-  location          = var.resource_group_location                    # Azure region (from input variable)
+  location          = var.network_group_location                     # Azure region (from input variable)
   netbios           = var.netbios                                    # NetBIOS domain name (e.g., MCLOUD)
   vnet_id           = azurerm_virtual_network.ad_vnet.id             # Virtual Network where the AD will reside
   realm             = var.realm                                      # Kerberos realm (usually UPPERCASE DNS domain)
