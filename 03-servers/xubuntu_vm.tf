@@ -63,7 +63,7 @@ resource "azurerm_linux_virtual_machine" "xubuntu_instance" {
   name                = "xubuntu-${random_string.vm_suffix.result}"
   location            = data.azurerm_resource_group.xubuntu.location
   resource_group_name = data.azurerm_resource_group.xubuntu.name
-  size                = "Standard_B1s"
+  size                = "Standard_D4s_v3"
   admin_username      = "ubuntu"
   admin_password      = random_password.ubuntu_password.result
   disable_password_authentication = false
