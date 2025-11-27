@@ -1,43 +1,45 @@
-# ==================================================================================================
-# Windows VM Deployment with Admin User (Active Directory Instance)
-# - Generates secure credentials for the 'adminuser' account
-# - Stores credentials in Azure Key Vault
-# - Provisions NIC, Windows VM, assigns permissions, and runs domain join script
-# ==================================================================================================
+# ==============================================================================
+# Windows VM deployment with admin user (Active Directory instance)
+# ------------------------------------------------------------------------------
+# Generates secure credentials for 'adminuser', stores them in Key Vault,
+# provisions NIC and VM, creates a public IP, and runs an AD join script.
+# ==============================================================================
 
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Generate a secure random password for the Windows VM 'adminuser' account
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 resource "random_password" "win_adminuser_password" {
   length           = 24        # 24-character password
   special          = true      # Include special characters
   override_special = "!@#$%"   # Limit special characters to this set
 }
 
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Generate a random suffix for resource names
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 resource "random_string" "vm_suffix" {
   length  = 6     # 6-character suffix
   special = false # Exclude special characters
   upper   = false # Lowercase only
 }
 
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 # Store 'adminuser' credentials in Azure Key Vault as JSON
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 resource "azurerm_key_vault_secret" "win_adminuser_secret" {
   name         = "win-adminuser-credentials"
-  value        = jsonencode({ username = "adminuser", password = random_password.win_adminuser_password.result })
+  value        = jsonencode({
+                  username = "adminuser",
+                  password = random_password.win_adminuser_password.result
+                })
   key_vault_id = data.azurerm_key_vault.ad_key_vault.id
   content_type = "application/json"
 }
 
-# --------------------------------------------------------------------------------
-# Create a Public IP address for the Windows VM
-# - Static IPv4 address for predictable access
-# - No domain name label (clean IP only)
-# --------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Create a public IP address for the Windows VM
+# - Static IPv4 address with domain label for convenience
+# ------------------------------------------------------------------------------
 resource "azurerm_public_ip" "windows_vm_public_ip" {
   name                = "windows-vm-public-ip"
   location            = data.azurerm_resource_group.xubuntu.location
@@ -47,10 +49,9 @@ resource "azurerm_public_ip" "windows_vm_public_ip" {
   domain_name_label   = "win-ad-${random_string.vm_suffix.result}"
 }
 
-# --------------------------------------------------------------------------------
-# Create a Network Interface (NIC) for the Windows VM
-# - Adds the public IP to the NIC ip_configuration block
-# --------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Create a NIC for the Windows VM and associate the public IP
+# ------------------------------------------------------------------------------
 resource "azurerm_network_interface" "windows_vm_nic" {
   name                = "windows-vm-nic"
   location            = data.azurerm_resource_group.xubuntu.location
@@ -64,15 +65,15 @@ resource "azurerm_network_interface" "windows_vm_nic" {
   }
 }
 
-# --------------------------------------------------------------------------------------------------
-# Provision the Windows Server Virtual Machine
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Provision the Windows Server virtual machine
+# ------------------------------------------------------------------------------
 resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
-  name                = "win-ad-${random_string.vm_suffix.result}"   # VM name includes suffix
+  name                = "win-ad-${random_string.vm_suffix.result}"
   location            = data.azurerm_resource_group.xubuntu.location
   resource_group_name = data.azurerm_resource_group.xubuntu.name
   
-  size                = "Standard_DS1_v2"                            # Small VM for demo/testing
+  size                = "Standard_DS1_v2" # Small size for demos
   admin_username      = "adminuser"
   admin_password      = random_password.win_adminuser_password.result
 
@@ -93,25 +94,25 @@ resource "azurerm_windows_virtual_machine" "windows_ad_instance" {
     version   = "latest"
   }
 
-  # Assign system-managed identity (needed for Key Vault access)
+  # System-assigned identity for Key Vault access
   identity {
     type = "SystemAssigned"
   }
 }
 
-# --------------------------------------------------------------------------------------------------
-# Grant VM's system-managed identity permission to read Key Vault secrets
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Grant VM identity permission to read Key Vault secrets
+# ------------------------------------------------------------------------------
 resource "azurerm_role_assignment" "vm_win_key_vault_secrets_user" {
   scope                = data.azurerm_key_vault.ad_key_vault.id
   role_definition_name = "Key Vault Secrets User"
   principal_id         = azurerm_windows_virtual_machine.windows_ad_instance.identity[0].principal_id
 }
 
-# --------------------------------------------------------------------------------------------------
-# Run a custom script extension to join Windows VM to AD domain
+# ------------------------------------------------------------------------------
+# Run a script extension to join the Windows VM to the AD domain
 # - Script is pulled from Azure Storage and executed via PowerShell
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 resource "azurerm_virtual_machine_extension" "join_script" {
   name                 = "customScript"
   virtual_machine_id   = azurerm_windows_virtual_machine.windows_ad_instance.id
@@ -134,9 +135,9 @@ resource "azurerm_virtual_machine_extension" "join_script" {
   ]
 }
 
-# --------------------------------------------------------------------------------------------------
-# (Optional) Output the AD join script URL (with SAS token)
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# (Optional) Output the AD join script URL with SAS token
+# ------------------------------------------------------------------------------
 # output "ad_join_script_url" {
 #   value       = "https://${azurerm_storage_account.scripts_storage.name}.blob.core.windows.net/${azurerm_storage_container.scripts.name}/${azurerm_storage_blob.ad_join_script.name}?${data.azurerm_storage_account_sas.script_sas.sas}"
 #   description = "URL to the AD join script with SAS token."

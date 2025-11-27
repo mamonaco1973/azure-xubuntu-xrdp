@@ -1,105 +1,110 @@
-# ==================================================================================================
-# AzureRM Provider Configuration and Core Data Sources
-# - Configures Azure provider with Key Vault options
-# - Defines key input variables (Resource Group, Vault name)
-# - Fetches subscription, client, resource group, VNet, subnet, and Key Vault details
-# ==================================================================================================
+# ==============================================================================
+# AzureRM provider configuration and core data sources
+# ------------------------------------------------------------------------------
+# Configures the AzureRM provider, defines key input variables, and loads core
+# data sources including subscription info, client config, resource groups,
+# virtual network, subnet, Key Vault, and custom VM image details.
+# ==============================================================================
 
-# --------------------------------------------------------------------------------------------------
-# Configure AzureRM provider (required for all Azure deployments)
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Configure AzureRM provider for all Azure deployments
+# ------------------------------------------------------------------------------
 provider "azurerm" {
   features {
     key_vault {
-      purge_soft_delete_on_destroy    = true   # Immediately purge deleted Key Vaults (bypass soft-delete retention)
-      recover_soft_deleted_key_vaults = false  # Do not auto-recover previously deleted Key Vaults
+      purge_soft_delete_on_destroy    = true  # Purge Key Vaults on destroy
+      recover_soft_deleted_key_vaults = false # Do not auto-recover deleted vaults
     }
   }
 }
 
-# --------------------------------------------------------------------------------------------------
-# Fetch subscription details (ID, name, etc.)
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Subscription details for the authenticated Azure context
+# ------------------------------------------------------------------------------
 data "azurerm_subscription" "primary" {}
 
-# --------------------------------------------------------------------------------------------------
-# Fetch details about the authenticated client (SPN or user identity)
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Client configuration details (SPN or user identity)
+# ------------------------------------------------------------------------------
 data "azurerm_client_config" "current" {}
 
-# --------------------------------------------------------------------------------------------------
-# Input variable: Resource Group name
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Input variable: resource group for core project resources
+# ------------------------------------------------------------------------------
 variable "resource_group_name" {
-  description = "The name of the Azure Resource Group"
+  description = "Name of the Azure Resource Group for the project"
   type        = string
   default     = "xubuntu-project-rg"
 }
 
+# ------------------------------------------------------------------------------
+# Input variable: resource group containing network resources
+# ------------------------------------------------------------------------------
 variable "network_resource_group_name" {
-  description = "The name of the Azure Resource Group for network resources"
+  description = "Name of the Resource Group for networking resources"
   type        = string
   default     = "xubuntu-network-rg"
 }
 
-# --------------------------------------------------------------------------------------------------
-# Input variable: Key Vault name
-# - Can be set via CLI, TFVARS, or overridden at apply time
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Input variable: Key Vault name used to store secrets
+# ------------------------------------------------------------------------------
 variable "vault_name" {
-  description = "The name of the Azure Key Vault for storing secrets"
+  description = "Name of the Azure Key Vault for storing secrets"
   type        = string
-  # default   = "ad-key-vault-qcxu2ksw"  # Example value (commented out so it's explicitly required)
 }
 
-# --------------------------------------------------------------------------------------------------
-# Fetch details about the specified Resource Group
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Load details for the main project resource group
+# ------------------------------------------------------------------------------
 data "azurerm_resource_group" "xubuntu" {
   name = var.resource_group_name
 }
 
-# --------------------------------------------------------------------------------------------------
-# Fetch details about the specified Resource Group
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Load details for the networking resource group
+# ------------------------------------------------------------------------------
 data "azurerm_resource_group" "network" {
   name = var.network_resource_group_name
 }
 
-
-# --------------------------------------------------------------------------------------------------
-# Fetch details about existing Virtual Network
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Load details of the existing virtual network
+# ------------------------------------------------------------------------------
 data "azurerm_virtual_network" "ad_vnet" {
   name                = "ad-vnet"
   resource_group_name = data.azurerm_resource_group.network.name
 }
 
-# --------------------------------------------------------------------------------------------------
-# Fetch details about existing Subnet within the VNet
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Load details of the VM subnet inside the VNet
+# ------------------------------------------------------------------------------
 data "azurerm_subnet" "vm_subnet" {
   name                 = "vm-subnet"
   resource_group_name  = data.azurerm_resource_group.network.name
   virtual_network_name = data.azurerm_virtual_network.ad_vnet.name
 }
 
-# --------------------------------------------------------------------------------------------------
-# Fetch details about the existing Key Vault
-# --------------------------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
+# Load Key Vault details for storing VM and service credentials
+# ------------------------------------------------------------------------------
 data "azurerm_key_vault" "ad_key_vault" {
   name                = var.vault_name
   resource_group_name = var.network_resource_group_name
 }
 
-
+# ------------------------------------------------------------------------------
+# Input variable: name of the custom Xubuntu image in Azure
+# ------------------------------------------------------------------------------
 variable "xubuntu_image_name" {
-  description = "Name of the custom Azure linux image"   # Human-readable explanation of the variable's purpose
-  type        = string                                   # Enforce the input type as a string (required for validation and clarity)
-                                                         # This value is typically passed in via CLI, tfvars, or environment
+  description = "Name of the custom Azure Linux image"
+  type        = string
 }
 
+# ------------------------------------------------------------------------------
+# Load custom Xubuntu image from the resource group
+# ------------------------------------------------------------------------------
 data "azurerm_image" "xubuntu_image" {
-  name                = var.xubuntu_image_name                               # Custom image name passed in as variable
-  resource_group_name = data.azurerm_resource_group.xubuntu.name             # Use resource group where the image is stored
-} 
+  name                = var.xubuntu_image_name
+  resource_group_name = data.azurerm_resource_group.xubuntu.name
+}

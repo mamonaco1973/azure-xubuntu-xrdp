@@ -1,9 +1,9 @@
 # ==============================================================================
-# Linux VM Deployment with Ubuntu Account (Xubuntu Instance)
+# Linux VM deployment with Ubuntu account (Xubuntu instance)
 # ------------------------------------------------------------------------------
-# Generates secure local credentials for the 'ubuntu' user, stores them in
-# Azure Key Vault, provisions a NIC with a public IP, deploys the VM, and
-# assigns the Key Vault Secrets User role to the VM’s managed identity.
+# Generates secure credentials for the 'ubuntu' user, stores them in Key Vault,
+# allocates a public IP, provisions a NIC, deploys the VM, and assigns the Key
+# Vault Secrets User role to the VM's managed identity.
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
@@ -35,9 +35,9 @@ resource "azurerm_public_ip" "xubuntu_public_ip" {
   name                = "xubuntu-public-ip"
   location            = data.azurerm_resource_group.xubuntu.location
   resource_group_name = data.azurerm_resource_group.xubuntu.name
-  domain_name_label = "xubuntu-${random_string.vm_suffix.result}"
-  allocation_method = "Static"
-  sku               = "Standard"
+  domain_name_label   = "xubuntu-${random_string.vm_suffix.result}"
+  allocation_method   = "Static"
+  sku                 = "Standard"
 }
 
 # ------------------------------------------------------------------------------
@@ -57,15 +57,15 @@ resource "azurerm_network_interface" "xubuntu_nic" {
 }
 
 # ------------------------------------------------------------------------------
-# Provision the Xubuntu Linux Virtual Machine
+# Provision the Xubuntu Linux virtual machine
 # ------------------------------------------------------------------------------
 resource "azurerm_linux_virtual_machine" "xubuntu_instance" {
-  name                            = "xubuntu-${random_string.vm_suffix.result}"
-  location                        = data.azurerm_resource_group.xubuntu.location
-  resource_group_name             = data.azurerm_resource_group.xubuntu.name
-  size                            = "Standard_B1s"
-  admin_username                  = "ubuntu"
-  admin_password                  = random_password.ubuntu_password.result
+  name                = "xubuntu-${random_string.vm_suffix.result}"
+  location            = data.azurerm_resource_group.xubuntu.location
+  resource_group_name = data.azurerm_resource_group.xubuntu.name
+  size                = "Standard_B1s"
+  admin_username      = "ubuntu"
+  admin_password      = random_password.ubuntu_password.result
   disable_password_authentication = false
 
   network_interface_ids = [
@@ -97,7 +97,7 @@ resource "azurerm_linux_virtual_machine" "xubuntu_instance" {
 }
 
 # ------------------------------------------------------------------------------
-# Grant the VM’s identity permission to read Key Vault secrets
+# Grant the VM identity permission to read Key Vault secrets
 # ------------------------------------------------------------------------------
 resource "azurerm_role_assignment" "vm_lnx_key_vault_secrets_user" {
   scope                = data.azurerm_key_vault.ad_key_vault.id
