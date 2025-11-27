@@ -20,7 +20,7 @@ xubuntu_image_name=$(az image list \
   --query "[?starts_with(name, 'xubuntu_image')]|sort_by(@, &name)[-1].name" \
   --output tsv)
 
-echo "Using latest image: $xubuntu_image_name"
+echo "NOTE: Using latest image: $xubuntu_image_name"
 
 if [ -z "$xubuntu_image_name" ]; then
   echo "ERROR: No Xubuntu image found in xubuntu-project-rg."

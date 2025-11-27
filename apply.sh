@@ -67,7 +67,7 @@ xubuntu_image_name=$(az image list \
   --query "[?starts_with(name, 'xubuntu_image')]|sort_by(@, &name)[-1].name" \
   --output tsv)
 
-echo "Using latest Xubuntu image: $xubuntu_image_name"
+echo "NOTE: Using latest Xubuntu image: $xubuntu_image_name"
 
 if [ -z "$xubuntu_image_name" ]; then
   echo "ERROR: No Xubuntu image found in xubuntu-project-rg."
@@ -82,7 +82,7 @@ vault=$(az keyvault list \
   --query "[?starts_with(name, 'ad-key-vault')].name | [0]" \
   --output tsv)
 
-echo "Using Key Vault: $vault"
+echo "NOTE: Using Key Vault: $vault"
 
 terraform init
 terraform apply \
