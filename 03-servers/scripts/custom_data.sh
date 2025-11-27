@@ -51,6 +51,11 @@ sudo sed -i 's/ldap_id_mapping = True/ldap_id_mapping = False/g' \
 sudo sed -i 's|fallback_homedir = /home/%u@%d|fallback_homedir = /home/%u|' \
     /etc/sssd/sssd.conf
 
+# Update access provider to 'simple' to allow all authenticated users.
+sudo sed -i \
+  -e 's/^access_provider *= *.*/access_provider = simple/' \
+  /etc/sssd/sssd.conf
+
 # Stop XAuthority warning 
 
 touch /etc/skel/.Xauthority
