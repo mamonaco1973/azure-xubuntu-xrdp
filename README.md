@@ -65,25 +65,29 @@ cd azure-xubuntu-xrdp
 Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.
 
 ```bash
-develop-vm:~/azure-xubuntu-xrdp$ ./apply.sh
+azureuser@devel~/azure-xubuntu-xrdp$ ./apply.sh
 NOTE: Validating that required commands are found in your PATH.
-NOTE: aws is found in the current PATH.
+NOTE: az is found in the current PATH.
 NOTE: terraform is found in the current PATH.
+NOTE: jq is found in the current PATH.
+NOTE: packer is found in the current PATH.
 NOTE: All required commands are available.
-NOTE: Checking AWS cli connection.
-NOTE: Successfully logged into AWS.
+NOTE: Validating that required environment variables are set.
+NOTE: ARM_CLIENT_ID is set.
+NOTE: ARM_CLIENT_SECRET is set.
+NOTE: ARM_SUBSCRIPTION_ID is set.
+NOTE: ARM_TENANT_ID is set.
+NOTE: All required environment variables are set.
+NOTE: Logging in to Azure using Service Principal...
+NOTE: Successfully logged into Azure.
 Initializing the backend...
+Initializing modules...
 Initializing provider plugins...
 - Reusing previous version of hashicorp/random from the dependency lock file
-- Reusing previous version of hashicorp/aws from the dependency lock file
-- Using previously-installed hashicorp/random v3.7.1
-- Using previously-installed hashicorp/aws v5.89.0
-
-Terraform has been successfully initialized!
-
-You may now begin working with Terraform. Try running "terraform plan" to see
-any changes that are required for your infrastructure. All Terraform commands
-should now work.
+- Reusing previous version of hashicorp/time from the dependency lock file
+- Reusing previous version of hashicorp/azurerm from the dependency lock file
+- Using previously-installed hashicorp/random v3.7.2
+- Using previously-installed hashicorp/time v0.13.1
 ```
 
 ### Build Results
