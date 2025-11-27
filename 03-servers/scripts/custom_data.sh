@@ -52,7 +52,7 @@ mount /home
 # ---------------------------------------------------------------------------------
 
 az login --identity --allow-no-subscriptions
-secretsJson=$(az keyvault secret show --name admin-ad-credentials --vault-name ${vault_name} --query value -o tsv)
+secretsJson=$(az keyvault secret show --name admin-credentials --vault-name ${vault_name} --query value -o tsv)
 admin_password=$(echo "$secretsJson" | jq -r '.password')
 admin_username="${netbios}\\Admin"
 
