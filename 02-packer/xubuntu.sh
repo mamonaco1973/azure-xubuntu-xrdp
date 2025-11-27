@@ -6,31 +6,63 @@ set -euo pipefail
 # Azure-Safe Version (Prevents Networking Failure on Reboot)
 # ================================================================================
 # Description:
-#   Installs Xubuntu minimal desktop environment and ensures the final Azure VM
-#   uses systemd-networkd instead of NetworkManager. This prevents Azure reboot
-#   issues where SSH/XRDP fail because NetworkManager overwrites netplan or
-#   races cloud-init on boot.
+#   Installs Xubuntu minimal desktop and enforces Azure-safe networking by
+#   removing NetworkManager, preventing reinstallation, and configuring
+#   cloud-init + systemd-networkd with an Azure-friendly netplan file.
+#   This eliminates the well-known Azure issue where installing a desktop
+#   causes networking to fail after reboot (SSH/XRDP dead).
 # ================================================================================
+
 
 # ================================================================================
 # Step 1: Install Xubuntu minimal desktop environment
 # ================================================================================
+
 sudo apt-get update -y
 sudo apt-get install -y xubuntu-desktop-minimal
+
 
 # ================================================================================
 # Step 1B: REMOVE NETWORKMANAGER (Critical for Azure Stability)
 # ================================================================================
-# NetworkManager gets reinstalled by the desktop packages — remove it now.
+# Xubuntu pulls in NetworkManager. Azure cannot use it reliably — it conflicts
+# with cloud-init and prevents NIC initialization after reboot.
+
 sudo apt-get remove --purge -y network-manager
 sudo apt-get autoremove -y
 
-# Prevent cloud-init or desktop packages from switching to NetworkManager again.
+
+# ================================================================================
+# Step 1C: PREVENT NETWORKMANAGER FROM EVER BEING REINSTALLED
+# ================================================================================
+
+# 1. APT pinning — disallow installation entirely
+sudo tee /etc/apt/preferences.d/disable-network-manager >/dev/null <<EOF
+Package: network-manager
+Pin: release *
+Pin-Priority: -1
+
+Package: network-manager-*
+Pin: release *
+Pin-Priority: -1
+EOF
+
+# 2. Mask services — belt & suspenders protection
+sudo systemctl mask NetworkManager.service 2>/dev/null || true
+sudo systemctl mask NetworkManager-wait-online.service 2>/dev/null || true
+
+
+# ================================================================================
+# Step 1D: RESTORE AZURE-NATIVE CLOUD-INIT + NETPLAN NETWORKING
+# ================================================================================
+# NetworkManager modifies netplan. Restore Azure's expected configuration.
+
+# Prevent cloud-init from switching to NetworkManager mode
 sudo mkdir -p /etc/cloud/cloud.cfg.d
 echo "network: {config: disabled}" \
   | sudo tee /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
 
-# Provide a clean Azure-friendly netplan configuration.
+# Provide a clean, Azure-friendly netplan config
 sudo tee /etc/netplan/01-azure.yaml >/dev/null <<EOF
 network:
   version: 2
@@ -41,9 +73,11 @@ EOF
 
 sudo netplan generate
 
+
 # ================================================================================
 # Step 2: Install clipboard utilities and XFCE enhancements
 # ================================================================================
+
 sudo apt-get install -y \
   xfce4-clipman \
   xfce4-clipman-plugin \
@@ -55,29 +89,40 @@ sudo apt-get install -y \
   xfce4-goodies \
   xdg-utils
 
+
 # ================================================================================
 # Step 3: Set XFCE Terminal as the system-wide default terminal emulator
 # ================================================================================
+
 sudo update-alternatives --install \
   /usr/bin/x-terminal-emulator \
   x-terminal-emulator \
   /usr/bin/xfce4-terminal \
   50
 
+
 # ================================================================================
 # Step 4: Ensure new users receive a Desktop folder
 # ================================================================================
+
 sudo mkdir -p /etc/skel/Desktop
+
 
 # ================================================================================
 # Step 5: Replace default XFCE background image
 # ================================================================================
+
 cd /usr/share/backgrounds/xfce
 
-# Backup the original wallpaper
+# Backup original wallpaper for safety
 sudo mv xfce-shapes.svg xfce-shapes.svg.bak
 
-# Replace wallpaper with existing known-good asset
+# Replace with an existing, stable wallpaper
 sudo cp xfce-leaves.svg xfce-shapes.svg
+
+
+# ================================================================================
+# Completed
+# ================================================================================
 
 echo "NOTE: Xubuntu minimal desktop + Azure-safe networking configuration complete."
