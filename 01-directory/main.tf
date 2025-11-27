@@ -33,18 +33,18 @@ data "azurerm_subscription" "primary" {}
 data "azurerm_client_config" "current" {}
 
 # --------------------------------------------------------------------------------------------------
-# Input variable: Resource Group name
+# Input variable: Network Resource Group name
 # --------------------------------------------------------------------------------------------------
-variable "resource_group_name" {
-  description = "The name of the Azure Resource Group"
+variable "network_resource_group_name" {
+  description = "The name of the Azure Networking Resource Group"
   type        = string
-  default     = "xubuntu-project-rg"
+  default     = "xubuntu-network-rg"
 }
 
 # --------------------------------------------------------------------------------------------------
-# Input variable: Resource Group location
+# Input variable: Network Resource Group location
 # --------------------------------------------------------------------------------------------------
-variable "resource_group_location" {
+variable "network_group_location" {
   description = "The Azure region where the Resource Group will be created"
   type        = string
   default     = "Central US"
@@ -54,6 +54,32 @@ variable "resource_group_location" {
 # Create the Resource Group
 # --------------------------------------------------------------------------------------------------
 resource "azurerm_resource_group" "ad" {
-  name     = var.resource_group_name
-  location = var.resource_group_location
+  name     = var.network_resource_group_name
+  location = var.network_group_location
+}
+
+# --------------------------------------------------------------------------------------------------
+# Input variable: Servers Resource Group name
+# --------------------------------------------------------------------------------------------------
+variable "servers_resource_group_name" {
+  description = "The name of the Azure Servers Resource Group"
+  type        = string
+  default     = "xubuntu-project-rg"
+}
+
+# --------------------------------------------------------------------------------------------------
+# Input variable: Servers Resource Group location
+# --------------------------------------------------------------------------------------------------
+variable "servers_group_location" {
+  description = "The Azure region where the Resource Group will be created"
+  type        = string
+  default     = "Central US"
+}
+
+# --------------------------------------------------------------------------------------------------
+# Create the Resource Group
+# --------------------------------------------------------------------------------------------------
+resource "azurerm_resource_group" "servers" {
+  name     = var.servers_resource_group_name
+  location = var.servers_group_location
 }
