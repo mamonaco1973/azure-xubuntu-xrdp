@@ -58,7 +58,7 @@ resource "azurerm_storage_share" "nfs" {
 # ================================================================================================
 resource "azurerm_private_dns_zone" "file" {
   name                = "privatelink.file.core.windows.net"
-  resource_group_name = data.azurerm_resource_group.ad.name
+  resource_group_name = data.azurerm_resource_group.xubuntu.name
 }
 
 # ----------------------------------------------------------------------------------------------
