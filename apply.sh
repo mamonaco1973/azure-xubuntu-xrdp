@@ -1,11 +1,11 @@
 #!/bin/bash
 # ==============================================================================
-# Bootstrap Script for Xubuntu XRDP Project on Azure
+# Build Script for Xubuntu XRDP Project on Azure
 # Purpose:
 #   - Validates the environment and prerequisites before deployment.
 #   - Deploys the project in two phases:
-#       1. Directory layer: Key Vault and base infra.
-#       2. Server layer: Xubuntu VM, Mini-AD VM, and secrets.
+#       1. Directory layer: Key Vault, Mini-AD and base infra.
+#       2. Server layer: Xubuntu VM, AD Admin VM, and secrets.
 #   - Uses Packer to build the Xubuntu image before server deployment.
 # Notes:
 #   - Assumes Azure CLI and Terraform are installed and logged in.
@@ -25,7 +25,7 @@ if [ $? -ne 0 ]; then
 fi
 
 # ------------------------------------------------------------------------------
-# Phase 1: Deploy directory layer (Key Vault and base infra)
+# Deploy directory layer (Mini-AD, Key Vault and base infra)
 # ------------------------------------------------------------------------------
 cd 01-directory
 
@@ -55,7 +55,7 @@ packer build \
 cd ..
 
 # ------------------------------------------------------------------------------
-# Phase 2: Deploy server layer (Mini-AD VM and Xubuntu VM)
+# Deploy server layer (AD Admin VM and Xubuntu VM)
 # ------------------------------------------------------------------------------
 cd 03-servers
 
@@ -84,6 +84,10 @@ vault=$(az keyvault list \
 
 echo "NOTE: Using Key Vault: $vault"
 
+# ------------------------------------------------------------------------------
+# Deploy Server layer with Terraform
+# ------------------------------------------------------------------------------
+
 terraform init
 terraform apply \
   -var="vault_name=$vault" \
@@ -91,3 +95,9 @@ terraform apply \
   -auto-approve
 
 cd ..
+
+# ------------------------------------------------------------------------------
+# Run Build Validation
+# ------------------------------------------------------------------------------
+
+./validate.sh
