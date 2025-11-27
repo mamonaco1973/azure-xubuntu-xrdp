@@ -1,171 +1,244 @@
-# Azure Mini Active Directory with Azure Files: SMB & NFS File Sharing
+# Azure Xubuntu XRDP Cloud Development Environment
 
-This project extends the original **Azure Mini Active Directory** lab by integrating **Azure Files** as a managed shared storage backend. Instead of relying only on local disks or standalone file servers, this solution demonstrates how to expose Azure Files storage in two ways:  
+This project provides a **complete cloud-based Linux desktop development environment**
+powered by **Xubuntu + XRDP**, **Mini-Active Directory**, and **Azure Files (NFS)** on
+the Microsoft Azure platform.
 
-1. **Direct NFS Mounts on Linux Clients** – Linux machines joined to the mini-AD domain mount Azure Files via the NFS 4.1 protocol for scalable, POSIX-compliant storage.  
-2. **Native SMB Access** – Windows machines joined to the mini-AD domain access Azure Files directly using SMB, enabling seamless integration with Active Directory authentication.  
+It is designed as a **universal dev workstation** that contains the full superset of
+tools, dependencies, and configurations used across all build projects on my channel.
 
-The mini-AD environment (Samba 4 on Ubuntu) provides Active Directory authentication and DNS services. Azure Files provides managed SMB/NFS storage with premium performance options. Together, they enable a hybrid setup where both Linux and Windows domain-joined clients can consume Azure-native storage seamlessly.  
+![xrdp](xrdp.png)
 
-![Azure diagram](azure-files.png)
+Instead of manually configuring a workstation for each tutorial, demo, or cloud
+project, this solution automatically provisions:
 
-## Azure Files with NFS (Linux Integration)
+1. **A Custom Xubuntu XRDP Azure Image (Packer)**
+   - Preloaded with Chrome, Firefox (deb), VS Code, Docker, KRDC, Postman
+   - Includes all development tooling used across channel projects:
+     **Packer, Terraform, Docker CLI, Azure CLI, AWS CLI v2, Google Cloud CLI**
+   - Snap-free, clean, lightweight Xfce desktop
+   - XRDP fully configured with all fixes, enhancements, and defaults
+   - Desktop/panel icons, terminal emulator defaults, and `/etc/skel` customizations
 
-Azure Files supports the **NFS 4.1 protocol**, allowing Linux clients to mount file shares directly. This makes it ideal for POSIX-compliant workloads, multi-node analytics clusters, and containerized applications that expect a native NFS mount.
+2. **A Mini Active Directory Domain (Terraform)**
+   - Samba-based AD Domain Controller running on Azure
+   - Domain users generated from a template with friendly passwords
+   - Central authentication for Linux and Windows clients
 
-### Key Features
+3. **Domain-Joined Xubuntu XRDP VM (Terraform)**
+   - Deploys the Xubuntu XRDP instance using the Packer-built Azure Managed Image
+   - Automatically joins the Mini-AD domain during boot
+   - Ensures consistent user profiles and default settings through `/etc/skel`
 
-- **Protocol Support** – Full **NFSv4.1** support (no NFSv3) with strong consistency and support for file locking.  
-- **Scalability** – File shares can scale up to **100 TiB** in the standard tier and even larger in the premium tier.  
-- **Performance Tiers** –  
-  - **Standard (HDD-backed):** Lower-cost, throughput capped per TiB provisioned.  
-  - **Premium (SSD-backed):** Consistent low-latency performance with provisioned IOPS and throughput.  
-- **POSIX Permissions** – Supports Linux UID/GID semantics and **root squash**, making it suitable for multi-user environments.  
+4. **Azure Files (Premium NFS) for Persistent Home Directories**
+   - Linux instances mount Azure Files via NFS 4.1
+   - Provides centralized, persistent, scalable home directories
+   - Ideal for multi-VM desktop pools or Azure-based demo environments
 
-## Why a Samba Gateway is Needed for Windows Access
+The result is a **disposable, reproducible, cloud-hosted Linux workstation** that
+can be used for **any build, automation, or cloud project**
+featured on the channel.
 
-While Azure Files supports **NFS 4.1** for Linux clients, Windows does not natively support mounting NFS-based Azure Files shares in a domain-integrated, seamless way. Windows clients are designed to use **SMB** for file access and authentication.
+![Azure diagram](azure-xubuntu.png)
 
-Because of this mismatch:
 
-- **Protocol Limitation** – An **Azure Files share must be created as either SMB or NFS**. You cannot mount the same share with both protocols. If both Linux (NFS) and Windows (SMB) access are required against the same dataset, a gateway (such as Samba) is necessary.  
-- **Windows ↔ NFS Gap** – Windows clients can technically mount some NFS shares, but support is limited, lacks domain integration, and does not honor Active Directory user/group mappings in the same way as SMB.  
-- **Authentication Differences** – NFS enforces access through **POSIX UID/GID mappings**, whereas Windows relies on **Active Directory credentials with Kerberos/NTLM** over SMB. Without a translation layer, Windows can’t map AD identities to NFS ownership properly.  
-- **Samba Gateway Role** – A Samba server (joined to the Mini-AD domain) acts as a **protocol translator**:  
-  - Frontend: Exposes storage to Windows clients via **SMB shares** with full AD authentication.  
-  - Backend: Mounts the Azure Files **NFS share** on Linux, preserving POSIX semantics.  
-- **Unified Access** – This allows Linux clients to access the same data natively over NFS, while Windows clients use SMB, both seeing a consistent shared namespace.  
-
-In short, the Samba gateway bridges the protocol and identity gap, making **Azure Files with NFS usable in mixed Linux/Windows environments** where AD-based authentication is required on the Windows side.
-
-## Prerequisites  
+## Prerequisites
 
 * [An Azure Account](https://portal.azure.com/)
 * [Install AZ CLI](https://learn.microsoft.com/en-us/cli/azure/install-azure-cli) 
-* [Install Latest Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install Terraform](https://developer.hashicorp.com/terraform/install)
+* [Install Packer](https://developer.hashicorp.com/packer/install)
 
-If this is your first time watching our content, we recommend starting with this video: [Azure + Terraform: Easy Setup](https://www.youtube.com/watch?v=wwi3kVgYNOk). It provides a step-by-step guide to properly configure Terraform, Packer, and the AZ CLI.
+If this is your first time watching our content, we recommend starting with this video: [Azure + Terraform: Easy Setup](https://www.youtube.com/watch?v=j4aRjgH5H8Q). It provides a step-by-step guide to properly configure Terraform, Packer, and the AZ CLI.
+
+
+## Download this Repository
+
+```bash
+git clone https://github.com/mamonaco1973/azure-xubuntu-xrdp.git
+cd azure-xubuntu-xrdp
+```
+
+
+## Build the Code
+
+Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.
+
+```bash
+develop-vm:~/azure-xubuntu-xrdp$ ./apply.sh
+NOTE: Validating that required commands are found in your PATH.
+NOTE: aws is found in the current PATH.
+NOTE: terraform is found in the current PATH.
+NOTE: All required commands are available.
+NOTE: Checking AWS cli connection.
+NOTE: Successfully logged into AWS.
+Initializing the backend...
+Initializing provider plugins...
+- Reusing previous version of hashicorp/random from the dependency lock file
+- Reusing previous version of hashicorp/aws from the dependency lock file
+- Using previously-installed hashicorp/random v3.7.1
+- Using previously-installed hashicorp/aws v5.89.0
+
+Terraform has been successfully initialized!
+
+You may now begin working with Terraform. Try running "terraform plan" to see
+any changes that are required for your infrastructure. All Terraform commands
+should now work.
+```
+
+### Build Results
+
+When the deployment completes, the following resources are created:
+
+- **Networking:**  
+  - A dedicated Azure Virtual Network with public and private subnets  
+  - Public IPs and optionally Bastion for secure management access  
+  - Route tables and NSGs configured to support AD, Azure Files (NFS),  
+    and the Xubuntu XRDP VM  
+
+- **Security & Identity:**  
+  - Network Security Groups for the domain controller, Linux desktop VM,  
+    Windows admin VM, and storage services  
+  - Managed Identities and RBAC permissions allowing VMs to:  
+    - Retrieve secrets from **Azure Key Vault**  
+    - Mount Azure Files via NFS 4.1  
+    - Perform domain join and bootstrapping without embedding credentials  
+  - AD administrator credentials and autogenerated user passwords stored  
+    securely in **Azure Key Vault**  
+
+- **Mini Active Directory Server:**  
+  - Ubuntu-based VM running Samba 4 as the Domain Controller and DNS server  
+  - Configured Kerberos realm, DNS zone, and NetBIOS name  
+  - Domain users generated from a template with friendly passwords stored  
+    in Key Vault  
+
+- **Azure Files (Premium NFS):**  
+  - Premium FileStorage account with NFS 4.1 shares  
+  - Private endpoints and NSGs allowing NFS traffic (TCP/2049) from XRDP VMs  
+  - Serves as centralized home directory storage for Xubuntu desktop users  
+
+- **Packer-Built Xubuntu XRDP Image:**  
+  - Custom Azure Managed Image containing:  
+    - Xubuntu (XFCE), XRDP, Chrome, Firefox (deb), VS Code  
+    - Development tools: **Packer, Terraform, Docker CLI, Azure CLI,  
+      AWS CLI v2, Google Cloud CLI**  
+    - KRDC, Postman, and all channel-wide tooling  
+  - `/etc/skel` configured for default desktop icons, terminal emulator,  
+    wallpaper, and session defaults  
+  - All XRDP fixes applied (session startup, untrusted launcher behavior,  
+    consistent terminal defaults, etc.)  
+
+- **Xubuntu XRDP Desktop VM:**  
+  - Azure VM deployed from the custom Managed Image  
+  - Automatically joins the Mini-AD domain during cloud-init  
+  - Home directories mounted from Azure Files (NFS 4.1)  
+  - Fully configured cloud development workstation ready for any project  
+    on the channel  
+
+- **Windows Admin VM (Optional):**  
+  - Domain-joined Windows Server with RSAT, ADUC, and DNS tools  
+  - Useful for validation, troubleshooting, and Windows-based demo scenarios
+
+
+
+### Users and Groups
+
+As part of this project, when the domain controller is provisioned, a set of sample **users** and **groups** are automatically created through Terraform-provisioned scripts running on the mini-ad server. These resources are intended for **testing and demonstration purposes**, showcasing how to automate user and group provisioning in a self-managed Active Directory environment.
+
+
+#### Groups Created
+
+| Group Name    | Group Category | Group Scope | gidNumber |
+|---------------|----------------|-------------|-----------|
+| mcloud-users  | Security       | Universal   | 10001     |
+| india         | Security       | Universal   | 10002     |
+| us            | Security       | Universal   | 10003     |
+| linux-admins  | Security       | Universal   | 10004     |
+
+#### Users Created and Group Memberships
+
+| Username | Full Name   | uidNumber | gidNumber | Groups Joined                    |
+|----------|-------------|-----------|-----------|-----------------------------------|
+| jsmith   | John Smith  | 10001     | 10001     | mcloud-users, us, linux-admins    |
+| edavis   | Emily Davis | 10002     | 10001     | mcloud-users, us                  |
+| rpatel   | Raj Patel   | 10003     | 10001     | mcloud-users, india, linux-admins |
+| akumar   | Amit Kumar  | 10004     | 10001     | mcloud-users, india               |
 
 ---
 
-## Download this Repository  
+#### Understanding `uidNumber` and `gidNumber` for Linux Integration
 
-```bash
-git clone https://github.com/mamonaco1973/azure-nfs-files.git
-cd azure-nfs-files
-```  
-
-## Build the Code  
-
-Run [check_env](check_env.sh) to validate your environment, then run [apply](apply.sh) to provision the infrastructure.  
-
-```bash
-develop-vm:~/azure-nfs-files$ ./apply.sh
-NOTE: Validating that required commands are in PATH.
-NOTE: az is found in the current PATH.
-NOTE: terraform is found in the current PATH.
-NOTE: All required commands are available.
-NOTE: Checking Azure CLI connection.
-NOTE: Successfully logged into Azure.
-Initializing provider plugins...
-Terraform has been successfully initialized!
-```  
-
-### Build Results  
-
-When the deployment completes, the following resources are created:  
-
-- **Networking:**  
-  - A VNet with public and private subnets  
-  - Azure Bastion for secure RDP/SSH without public IPs  
-  - Route tables configured for AD, clients, and storage access  
-
-- **Security & Identity:**  
-  - NSGs for domain controller, Linux client, Windows client, and storage access  
-  - Azure Key Vault for credential storage (admin + user accounts)  
-  - Managed Identities for VM-to-Key Vault secret retrieval  
-
-- **Active Directory Server:**  
-  - Ubuntu VM running Samba 4 as Domain Controller and DNS server  
-  - Configured Kerberos realm and NetBIOS name  
-  - Administrator credentials stored in Key Vault  
-
-- **Client Instances:**  
-  - Windows VM joined to the domain via boot-time PowerShell script  
-  - Linux VM joined to the domain with SSSD integration via cloud-init  
-
-- **Azure Files Storage:**  
-  - Premium Storage Account with SMB and/or NFS protocol enabled  
-  - File shares provisioned for shared data and home directories  
-
-- **File Access Integration:**  
-  - A Linux VM mounts the Azure Files NFS share  
-  - The same Linux VM exposes the mounted share via **Samba**, acting as a gateway for Windows clients  
-  - This enables domain-joined Windows machines to access Azure Files storage transparently using SMB, while Linux clients mount NFS directly  
-
-### Users and Groups  
-
-The domain controller provisions **sample users and groups** via Terraform templates. These are intended for testing and demonstration.  
-
-#### Groups Created  
-
-| Group Name    | Category  | Scope     | gidNumber |
-|---------------|-----------|----------|-----------|
-| mcloud-users  | Security  | Universal | 10001 |
-| india         | Security  | Universal | 10002 |
-| us            | Security  | Universal | 10003 |
-| linux-admins  | Security  | Universal | 10004 |
-
-#### Users Created  
-
-| Username | Full Name   | uidNumber | gidNumber | Groups Joined                    |
-|----------|-------------|-----------|-----------|----------------------------------|
-| jsmith   | John Smith  | 10001     | 10001     | mcloud-users, us, linux-admins   |
-| edavis   | Emily Davis | 10002     | 10001     | mcloud-users, us                 |
-| rpatel   | Raj Patel   | 10003     | 10001     | mcloud-users, india, linux-admins|
-| akumar   | Amit Kumar  | 10004     | 10001     | mcloud-users, india              |
+The **`uidNumber`** (User ID) and **`gidNumber`** (Group ID) attributes are critical when integrating **Active Directory** with **Linux systems**, particularly in environments where **SSSD** ([System Security Services Daemon](https://sssd.io/)) or similar services are used for identity management. These attributes allow Linux hosts to recognize and map Active Directory users and groups into the **POSIX** (Portable Operating System Interface) user and group model.
 
 
+### Creating a New Desktop User
 
-### Log into Windows Instance  
+Follow these steps to provision a new user in the Active Directory domain and validate their access to the Desktop.
 
-When the Windows instance boots, the [ad_join script](02-servers/scripts/ad_join.ps1.template) executes the following tasks:  
+1. **Connect to the Domain Controller**  
+   - Log into the **`windows-ad-admin`** server via Remote Desktop (RDP).  
+   - Use the `rpatel` or `jsmith` credentials that were provisioned during cluster deployment.  
 
-- Install Active Directory Administrative Tools  
-- Install AWS CLI  
-- Join EC2 instance to Active Directory  
-- Grant RDP access to domain users  
-- Perform a final system reboot  
+2. **Launch Active Directory Users and Computers (ADUC)**  
+   - From the Windows Start menu, open **“Active Directory Users and Computers.”**  
+   - Enable **Advanced Features** under the **View** menu. This ensures you can access the extended attribute tabs (e.g., UID/GID mappings).  
 
-Administrator credentials are stored in the `admin_ad_credentials` secret.
+3. **Navigate to the Users Organizational Unit (OU)**  
+   - In the left-hand tree, expand the domain (e.g., `mcloud.mikecloud.com`).  
+   - Select the **Users** OU where all cluster accounts are managed.  
 
-![Windows EC2 Instance](windows.png)
+4. **Create a New User Object**  
+   - Right-click the Users OU and choose **New → User.**  
+   - Provide the following:  
+     - **Full Name:** Descriptive user name (e.g., “Mike Cloud”).  
+     - **User Logon Name (User Principal Name / UPN):** e.g., `mcloud@mcloud.mikecloud.com`.  
+     - **Initial Password:** Set an initial password.
 
-### Log into Linux Instance  
+![Windows](windows.png)
 
-When the Linux instance boots, the [custom data script](02-servers/scripts/custom_data.sh) runs the following tasks:  
+5. **Assign a Unique UID Number**  
+   - Open **PowerShell** on the AD server.  
+   - Run the script located at:  
+     ```powershell
+     Z:\efs\aws-xubuntu-xrdp\04-utils\getNextUID.bat
+     ```  
+   - This script returns the next available **`uidNumber`** to assign to the new account.  
 
-- Update OS and install required packages  
-- Install AWS CLI  
-- Join the Active Directory domain with SSSD  
-- Enable password authentication for AD users  
-- Configure SSSD for AD integration  
-- Grant sudo privileges to the `linux-admins` group  
-- Configure instance as a Samba file gateway to NFS
+6. **Configure Advanced Attributes**  
+   - In the new user’s **Properties** dialog, open the **Attribute Editor** tab.  
+   - Set the following values:  
+     - `gidNumber` → **10001** (the shared GID for the `mcloud-users` group).  
+     - `uid` → match the user’s AD login ID (e.g., `rpatel`).  
+     - `uidNumber` → the unique numeric value returned from `getNextUID.ps1`.  
 
-Linux user credentials are stored as secrets.
+7. **Add Group Memberships**  
+   - Go to the **Member Of** tab.  
+   - Add the user to the following groups:  
+     - **mcloud-users** → grants standard Desktop access.  
+     - **us** (or other geographic/departmental group as applicable).  
 
-![Linux EC2 Instance](linux.png)
+8. **Validate User on Linux**  
+   - Open an **AWS Systems Manager (SSM)** session to the **`xubuntu-instance`** instance.  
+   - Run the following command to confirm the user’s identity mapping:  
+     ```bash
+     id mcloud
+     ```  
+   - Verify that the output shows the correct **UID**, **GID**, and group memberships (e.g., `mcloud-users`).  
 
+![Linux](linux.png)
 
-### Clean Up  
+9. **Validate Desktop Access**  
+   - Open the a RDP session to the desktop environment
+   - Log in with the new AD credentials.  
 
-When finished, remove all resources with:  
+![mcloud](xrdp-mcloud.png)
+
+### Clean Up Infrastructure  
+
+When you are finished testing, you can remove all provisioned resources with:  
 
 ```bash
 ./destroy.sh
-```  
+```
 
-This uses Terraform to delete the VNet, VMs, Key Vault, storage accounts, NSGs, and secrets.  
-
-
+This will use Terraform to delete the VPC, EC2 instances, IAM roles, security groups, and any other infrastructure created by the project. Secrets stored in AWS Secrets Manager will also be deleted unless retention policies are configured.
