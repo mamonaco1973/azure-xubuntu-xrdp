@@ -1,139 +1,149 @@
-# ==================================================================================================
-# User Credential Management
-# Purpose:
-#   - Automatically generate strong random passwords for Active Directory (AD) users.
-#   - Store those credentials securely in Azure Key Vault as JSON objects.
-#
-# Notes:
-#   - Each user gets a unique random password (24 characters by default).
-#   - Passwords are stored in Key Vault under structured secrets, making retrieval easy for automation.
-#   - "override_special" restricts special characters to avoid compatibility issues with AD and scripts.
-#   - All secrets depend on the Key Vault access role assignment to ensure permissions are applied first.
-# ==================================================================================================
+# ==============================================================================
+# Friendly Password Generator for Azure AD Users
+# - Builds passwords as <word>-<number>
+# - Stores each user's creds in Azure Key Vault as JSON
+# ==============================================================================
 
-# --------------------------------------------------------------------------------------------------
-# User: John Smith (jsmith)
-# Generates a password and stores AD credentials in Key Vault.
-# --------------------------------------------------------------------------------------------------
-resource "random_password" "jsmith_password" {
-  length           = 24     # Secure 24-char password
-  special          = true   # Include special characters
-  override_special = "!@#%" # Restrict to safe AD-compatible characters
+# ------------------------------------------------------------------------------
+# Word list used to build memorable passwords
+# ------------------------------------------------------------------------------
+locals {
+  memorable_words = [
+    "bright", "simple", "orange", "window", "little", "people",
+    "friend", "yellow", "animal", "family", "circle", "moment",
+    "summer", "button", "planet", "rocket", "silver", "forest",
+    "stream", "butter", "castle", "wonder", "gentle", "driver",
+    "coffee"
+  ]
 }
 
-resource "azurerm_key_vault_secret" "jsmith_secret" {
-  name = "jsmith-ad-credentials" # Key Vault secret name
-  value = jsonencode({           # Store as JSON (username + password)
-    username = "jsmith@${var.dns_zone}"
-    password = random_password.jsmith_password.result
-  })
+# ------------------------------------------------------------------------------
+# AD users (key = username prefix, value = full name)
+# ------------------------------------------------------------------------------
+locals {
+  ad_users = {
+    jsmith = "John Smith"
+    edavis = "Emily Davis"
+    rpatel = "Raj Patel"
+    akumar = "Amit Kumar"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Pick one random word per user
+# ------------------------------------------------------------------------------
+resource "random_shuffle" "word" {
+  for_each     = local.ad_users
+  input        = local.memorable_words
+  result_count = 1
+}
+
+# ------------------------------------------------------------------------------
+# Generate a random 6-digit number per user
+# ------------------------------------------------------------------------------
+resource "random_integer" "num" {
+  for_each = local.ad_users
+  min      = 100000
+  max      = 999999
+}
+
+# ------------------------------------------------------------------------------
+# Build final passwords as <word>-<number>
+# ------------------------------------------------------------------------------
+locals {
+  passwords = {
+    for u, _ in local.ad_users :
+    u => "${random_shuffle.word[u].result[0]}-${random_integer.num[u].result}"
+  }
+}
+
+# ------------------------------------------------------------------------------
+# Create an Azure Key Vault secret per user
+# ------------------------------------------------------------------------------
+resource "azurerm_key_vault_secret" "user_secret" {
+  for_each = local.ad_users
+
+  name         = "${each.key}-ad-credentials"
   key_vault_id = azurerm_key_vault.ad_key_vault.id
-  depends_on   = [azurerm_role_assignment.kv_role_assignment]
-  content_type = "application/json" # Marks secret type as JSON
-}
 
-# --------------------------------------------------------------------------------------------------
-# User: Emily Davis (edavis)
-# --------------------------------------------------------------------------------------------------
-resource "random_password" "edavis_password" {
-  length           = 24
-  special          = true
-  override_special = "!@#%"
-}
-
-resource "azurerm_key_vault_secret" "edavis_secret" {
-  name = "edavis-ad-credentials"
   value = jsonencode({
-    username = "edavis@${var.dns_zone}"
-    password = random_password.edavis_password.result
+    username = "${each.key}@${var.dns_zone}"
+    password = local.passwords[each.key]
   })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
+
   depends_on   = [azurerm_role_assignment.kv_role_assignment]
   content_type = "application/json"
 }
 
-# --------------------------------------------------------------------------------------------------
-# User: Raj Patel (rpatel)
-# --------------------------------------------------------------------------------------------------
-resource "random_password" "rpatel_password" {
-  length           = 24
-  special          = true
-  override_special = "!@#%"
+# ==============================================================================
+# Sysadmin account (local AD service account)
+# Password also uses friendly format
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Random word for sysadmin
+# ------------------------------------------------------------------------------
+resource "random_shuffle" "sys_word" {
+  input        = local.memorable_words
+  result_count = 1
 }
 
-resource "azurerm_key_vault_secret" "rpatel_secret" {
-  name = "rpatel-ad-credentials"
-  value = jsonencode({
-    username = "rpatel@${var.dns_zone}"
-    password = random_password.rpatel_password.result
-  })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
-  depends_on   = [azurerm_role_assignment.kv_role_assignment]
-  content_type = "application/json"
+# ------------------------------------------------------------------------------
+# Random 6-digit number for sysadmin
+# ------------------------------------------------------------------------------
+resource "random_integer" "sys_num" {
+  min = 100000
+  max = 999999
 }
 
-# --------------------------------------------------------------------------------------------------
-# User: Amit Kumar (akumar)
-# --------------------------------------------------------------------------------------------------
-resource "random_password" "akumar_password" {
-  length           = 24
-  special          = true
-  override_special = "!@#%"
-}
-
-resource "azurerm_key_vault_secret" "akumar_secret" {
-  name = "akumar-ad-credentials"
-  value = jsonencode({
-    username = "akumar@${var.dns_zone}"
-    password = random_password.akumar_password.result
-  })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
-  depends_on   = [azurerm_role_assignment.kv_role_assignment]
-  content_type = "application/json"
-}
-
-# --------------------------------------------------------------------------------------------------
-# User: sysadmin (local AD service account)
-# Purpose:
-#   - Generic sysadmin account for automation and non-user-specific tasks.
-#   - Stored without domain suffix since it’s intended as a local account.
-# --------------------------------------------------------------------------------------------------
-resource "random_password" "sysadmin_password" {
-  length           = 24
-  special          = true
-  override_special = "!@#%"
-}
-
+# ------------------------------------------------------------------------------
+# Store sysadmin credentials in Key Vault
+# ------------------------------------------------------------------------------
 resource "azurerm_key_vault_secret" "sysadmin_secret" {
-  name = "sysadmin-credentials"
+  name         = "sysadmin-credentials"
+  key_vault_id = azurerm_key_vault.ad_key_vault.id
+
   value = jsonencode({
     username = "sysadmin"
-    password = random_password.sysadmin_password.result
+    password = "${random_shuffle.sys_word.result[0]}-${random_integer.sys_num.result}"
   })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
+
   depends_on   = [azurerm_role_assignment.kv_role_assignment]
   content_type = "application/json"
 }
 
-# --------------------------------------------------------------------------------------------------
-# User: Admin (AD Domain Administrator)
-# Purpose:
-#   - Special account for AD domain administration.
-#   - Uses slightly different special characters to align with AD domain password policies.
-# --------------------------------------------------------------------------------------------------
-resource "random_password" "admin_password" {
-  length           = 24
-  special          = true
-  override_special = "-_." # Different set of allowed special characters
+# ==============================================================================
+# Admin (domain admin) account using friendly password format
+# ==============================================================================
+
+# ------------------------------------------------------------------------------
+# Random word for admin
+# ------------------------------------------------------------------------------
+resource "random_shuffle" "admin_word" {
+  input        = local.memorable_words
+  result_count = 1
 }
 
+# ------------------------------------------------------------------------------
+# Random 6-digit number for admin
+# ------------------------------------------------------------------------------
+resource "random_integer" "admin_num" {
+  min = 100000
+  max = 999999
+}
+
+# ------------------------------------------------------------------------------
+# Store admin credentials in Key Vault
+# ------------------------------------------------------------------------------
 resource "azurerm_key_vault_secret" "admin_secret" {
-  name = "admin-ad-credentials"
+  name         = "admin-ad-credentials"
+  key_vault_id = azurerm_key_vault.ad_key_vault.id
+
   value = jsonencode({
     username = "Admin@${var.dns_zone}"
-    password = random_password.admin_password.result
+    password = "${random_shuffle.admin_word.result[0]}-${random_integer.admin_num.result}"
   })
-  key_vault_id = azurerm_key_vault.ad_key_vault.id
+
   depends_on   = [azurerm_role_assignment.kv_role_assignment]
   content_type = "application/json"
 }

@@ -33,18 +33,34 @@ resource "azurerm_key_vault_secret" "win_adminuser_secret" {
   content_type = "application/json"
 }
 
-# --------------------------------------------------------------------------------------------------
+# --------------------------------------------------------------------------------
+# Create a Public IP address for the Windows VM
+# - Static IPv4 address for predictable access
+# - No domain name label (clean IP only)
+# --------------------------------------------------------------------------------
+resource "azurerm_public_ip" "windows_vm_public_ip" {
+  name                = "windows-vm-public-ip"
+  location            = data.azurerm_resource_group.xubuntu.location
+  resource_group_name = data.azurerm_resource_group.xubuntu.name
+  allocation_method   = "Static"
+  sku                 = "Standard"
+  domain_name_label   = "win-ad-${random_string.vm_suffix.result}"
+}
+
+# --------------------------------------------------------------------------------
 # Create a Network Interface (NIC) for the Windows VM
-# --------------------------------------------------------------------------------------------------
+# - Adds the public IP to the NIC ip_configuration block
+# --------------------------------------------------------------------------------
 resource "azurerm_network_interface" "windows_vm_nic" {
   name                = "windows-vm-nic"
   location            = data.azurerm_resource_group.xubuntu.location
   resource_group_name = data.azurerm_resource_group.xubuntu.name
 
   ip_configuration {
-    name                          = "internal"                       # Label for NIC config
-    subnet_id                     = data.azurerm_subnet.vm_subnet.id # Attach to existing subnet
-    private_ip_address_allocation = "Dynamic"                        # Dynamic private IP
+    name                          = "internal"
+    subnet_id                     = data.azurerm_subnet.vm_subnet.id
+    private_ip_address_allocation = "Dynamic"
+    public_ip_address_id          = azurerm_public_ip.windows_vm_public_ip.id
   }
 }
 
