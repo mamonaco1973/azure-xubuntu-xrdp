@@ -221,6 +221,22 @@ chgrp -R mcloud-users gcp-setup
 
 # Disable cloud-init permanently after this runs
 
-sudo touch /etc/cloud/cloud-init.disabled
+echo "=== Disabling cloud-init for all future boots ==="
+touch /etc/cloud/cloud-init.disabled
+
+echo "=== Updating waagent configuration to disable provisioning ==="
+# Replace Provisioning.Agent=* with Provisioning.Agent=disabled
+if grep -q "^Provisioning.Agent=" /etc/waagent.conf; then
+    sed -i 's/^Provisioning.Agent=.*/Provisioning.Agent=disabled/' /etc/waagent.conf
+else
+    echo "Provisioning.Agent=disabled" >> /etc/waagent.conf
+fi
+
+echo "=== Restarting Azure Linux Agent ==="
+systemctl restart walinuxagent
+
+echo "=== Verification ==="
+grep Provisioning.Agent /etc/waagent.conf
+test -f /etc/cloud/cloud-init.disabled && echo "cloud-init disabled"
 
 
