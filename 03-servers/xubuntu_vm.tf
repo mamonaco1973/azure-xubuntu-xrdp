@@ -79,6 +79,10 @@ resource "azurerm_linux_virtual_machine" "xubuntu_instance" {
 
   source_image_id = data.azurerm_image.xubuntu_image.id
 
+  boot_diagnostics {
+    storage_account_uri = null
+  }
+
   custom_data = base64encode(templatefile(
     "./scripts/custom_data.sh",
     {
