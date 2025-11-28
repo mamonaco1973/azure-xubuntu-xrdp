@@ -8,7 +8,14 @@ set -euo pipefail
 #   - Samba utilities required for Kerberos, NTLM, and domain discovery
 # ==========================================================================================
 
-( crontab -l 2>/dev/null; echo "@reboot sleep 60 && systemctl start ssh && systemctl start xrdp && systemctl start xrdp-sesman && echo xrdp >> /tmp/xrdp.log" ) | crontab -
+
+CRON_JOB='@reboot sleep 60 && systemctl start ssh && systemctl start xrdp && systemctl start xrdp-sesman && echo xrdp >> /tmp/xrdp.log'
+
+# Append only if not already present
+crontab -l 2>/dev/null | grep -q "systemctl start xrdp" || (
+  crontab -l 2>/dev/null
+  echo "$CRON_JOB"
+) | crontab -
 
 # ------------------------------------------------------------------------------------------
 # XRDP has issues with snap so disable and remove it first
