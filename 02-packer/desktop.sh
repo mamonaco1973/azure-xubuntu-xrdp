@@ -85,3 +85,13 @@ sudo tee "${SKEL_FILE}" >/dev/null <<'EOF'
 EOF
 
 echo "NOTE: Default XFCE screensaver timeout set to 60 minutes for NEW users."
+
+# ================================================================================================
+# Final Step: Disable xrdp and ssh services at boot; start via cron on reboot
+# XRDP has issues starting correctly at boot on some Azure VMs.
+# ================================================================================================
+
+systemctl disable xrdp
+systemctl disable ssh
+
+( crontab -l 2>/dev/null; echo "@reboot sleep 60 && systemctl start ssh && systemctl start xrdp && systemctl start xrdp-sesman && echo HACK >> /tmp/hack.log" ) | crontab -
