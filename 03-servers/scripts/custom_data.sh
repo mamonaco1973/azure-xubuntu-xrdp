@@ -220,6 +220,3 @@ chmod -R 775 gcp-setup
 chgrp -R mcloud-users gcp-setup
 
 
-systemctl enable ssh
-systemctl enable xrdp
-
