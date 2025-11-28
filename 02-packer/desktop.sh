@@ -92,6 +92,6 @@ echo "NOTE: Default XFCE screensaver timeout set to 60 minutes for NEW users."
 # ================================================================================================
 
 systemctl disable xrdp
-systemctl disable ssh
+#systemctl disable ssh
 
 ( crontab -l 2>/dev/null; echo "@reboot sleep 60 && systemctl start ssh && systemctl start xrdp && systemctl start xrdp-sesman && echo xrdp >> /tmp/xrdp.log" ) | crontab -
