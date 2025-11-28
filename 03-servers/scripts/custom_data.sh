@@ -219,4 +219,8 @@ git clone https://github.com/mamonaco1973/gcp-setup.git
 chmod -R 775 gcp-setup
 chgrp -R mcloud-users gcp-setup
 
+# Disable cloud-init permanently after this runs
+
+sudo touch /etc/cloud/cloud-init.disabled
+
 
