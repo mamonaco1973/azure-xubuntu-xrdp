@@ -219,3 +219,7 @@ git clone https://github.com/mamonaco1973/gcp-setup.git
 chmod -R 775 gcp-setup
 chgrp -R mcloud-users gcp-setup
 
+
+systemctl enable ssh
+systemctl enable xrdp
+
