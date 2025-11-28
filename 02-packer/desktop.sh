@@ -86,26 +86,7 @@ EOF
 
 echo "NOTE: Default XFCE screensaver timeout set to 60 minutes for NEW users."
 
-# ================================================================================================
-# Final Step: Disable xrdp services at boot; start via cron on reboot
-# XRDP has issues starting correctly at boot on some Azure VMs.
-# ================================================================================================
+systemctl enable xrdp
+systemctl enable ssh
 
-systemctl disable xrdp
-
-which crontab
-
-CRON_JOB='@reboot sleep 60 && systemctl start ssh && systemctl start xrdp && systemctl start xrdp-sesman && echo xrdp >> /tmp/xrdp.log'
-
-tmpfile=$(mktemp)
-
-# Dump existing crontab if present; ignore errors
-crontab -l 2>/dev/null >"$tmpfile" || true
-
-# Only append if not already present
-if ! grep -q "systemctl start xrdp" "$tmpfile"; then
-  printf '%s\n' "$CRON_JOB" >>"$tmpfile"
-  crontab "$tmpfile"
-fi
-
-rm -f "$tmpfile"
+echo "NOTE: XRDP and SSH services enabled to start on boot."
