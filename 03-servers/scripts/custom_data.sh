@@ -9,17 +9,17 @@
 # ---------------------------------------------------------------------------------
 
 mkdir -p /nfs
-echo "${storage_account}.file.core.windows.net:/${storage_account}/nfs /nfs aznfs vers=4.1,defaults 0 0" | \
-  sudo tee -a /etc/fstab > /dev/null
-systemctl daemon-reload
-mount /nfs
+# echo "${storage_account}.file.core.windows.net:/${storage_account}/nfs /nfs aznfs vers=4.1,defaults 0 0" | \
+#   sudo tee -a /etc/fstab > /dev/null
+# systemctl daemon-reload
+# mount /nfs
 
 mkdir -p /nfs/home
 mkdir -p /nfs/data
-echo "${storage_account}.file.core.windows.net:/${storage_account}/nfs/home /home aznfs vers=4.1,defaults 0 0" | \
-  sudo tee -a /etc/fstab > /dev/null
-systemctl daemon-reload
-mount /home
+# echo "${storage_account}.file.core.windows.net:/${storage_account}/nfs/home /home aznfs vers=4.1,defaults 0 0" | \
+#   sudo tee -a /etc/fstab > /dev/null
+# systemctl daemon-reload
+# mount /home
 
 # ---------------------------------------------------------------------------------
 # Section 2: Configure AD as the identity provider
@@ -218,25 +218,3 @@ chgrp -R mcloud-users azure-setup
 git clone https://github.com/mamonaco1973/gcp-setup.git
 chmod -R 775 gcp-setup
 chgrp -R mcloud-users gcp-setup
-
-# Disable cloud-init permanently after this runs
-
-echo "=== Disabling cloud-init for all future boots ==="
-touch /etc/cloud/cloud-init.disabled
-
-echo "=== Updating waagent configuration to disable provisioning ==="
-# Replace Provisioning.Agent=* with Provisioning.Agent=disabled
-if grep -q "^Provisioning.Agent=" /etc/waagent.conf; then
-    sed -i 's/^Provisioning.Agent=.*/Provisioning.Agent=disabled/' /etc/waagent.conf
-else
-    echo "Provisioning.Agent=disabled" >> /etc/waagent.conf
-fi
-
-echo "=== Restarting Azure Linux Agent ==="
-systemctl restart walinuxagent
-
-echo "=== Verification ==="
-grep Provisioning.Agent /etc/waagent.conf
-test -f /etc/cloud/cloud-init.disabled && echo "cloud-init disabled"
-
-
