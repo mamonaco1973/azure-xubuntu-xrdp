@@ -12,7 +12,7 @@ mkdir -p /nfs
 
 cat <<EOF | sudo tee -a /etc/fstab > /dev/null
 ${storage_account}.file.core.windows.net:/${storage_account}/nfs      /nfs      aznfs vers=4.1,_netdev,sec=sys,soft,timeo=600,retrans=2,nofail,x-systemd.automount 0 0
-${storage_account}.file.core.windows.net:/${storage_account}/nfs/home /home     aznfs vers=4.1,_netdev,sec=sys,soft,timeo=600,retrans=2,nofail,x-systemd.automount 0 0
+#${storage_account}.file.core.windows.net:/${storage_account}/nfs/home /home     aznfs vers=4.1,_netdev,sec=sys,soft,timeo=600,retrans=2,nofail,x-systemd.automount 0 0
 EOF
 
 systemctl daemon-reload
@@ -22,7 +22,7 @@ systemctl daemon-reload
 mount /nfs || true
 mkdir -p /nfs/home
 mkdir -p /nfs/data
-mount /home || true
+#mount /home || true
 
 # ---------------------------------------------------------------------------------
 # Section 2: Configure AD as the identity provider
