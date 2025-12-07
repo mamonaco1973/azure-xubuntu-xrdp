@@ -9,8 +9,6 @@
 # ---------------------------------------------------------------------------------
 
 mkdir -p /nfs
-mkdir -p /nfs/home
-mkdir -p /nfs/data
 
 cat <<EOF | sudo tee -a /etc/fstab > /dev/null
 ${storage_account}.file.core.windows.net:/${storage_account}/nfs /nfs aznfs vers=4.1,_netdev,sec=sys,soft,timeo=600,retrans=2,nofail,x-systemd.automount 0 0
@@ -19,8 +17,11 @@ EOF
 
 systemctl daemon-reload
 
-# Try mounts now (won't brick if Azure Files isn't ready yet)
+# Try mounts now
+
 mount /nfs || true
+mkdir -p /nfs/home
+mkdir -p /nfs/data
 mount /home || true
 
 # ---------------------------------------------------------------------------------
