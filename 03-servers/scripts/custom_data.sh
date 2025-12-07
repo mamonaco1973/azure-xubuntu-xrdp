@@ -23,6 +23,7 @@ systemctl daemon-reload
 mount /nfs || true
 mkdir -p /nfs/home
 mkdir -p /nfs/data
+cp -R -p /home/ubuntu /nfs/home/
 mv /home /home.local
 ln -s /nfs/home /home
 
