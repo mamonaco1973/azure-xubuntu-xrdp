@@ -202,8 +202,8 @@ su -c "exit" edavis
 # Set NFS directory ownership and permissions
 chgrp mcloud-users /nfs
 chgrp mcloud-users /nfs/data
-chmod 770 /nfs
-chmod 770 /nfs/data
+chmod 775 /nfs
+chmod 775 /nfs/data
 chmod 700 /home/*
 
 cd /nfs
