@@ -45,7 +45,6 @@ if [ -z "$xubuntu_dns" ]; then
   echo "ERROR: No DNS label found for xubuntu-public-ip"
 else
   echo "NOTE: Xubuntu Instance FQDN: $xubuntu_dns"
-fi
 
   # ------------------------------------------------------------------------
   # Wait for SSH (port 22) on Xubuntu instance
