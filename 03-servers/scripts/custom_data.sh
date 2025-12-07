@@ -9,17 +9,19 @@
 # ---------------------------------------------------------------------------------
 
 mkdir -p /nfs
-# echo "${storage_account}.file.core.windows.net:/${storage_account}/nfs /nfs aznfs vers=4.1,defaults 0 0" | \
-#   sudo tee -a /etc/fstab > /dev/null
-# systemctl daemon-reload
-# mount /nfs
-
 mkdir -p /nfs/home
 mkdir -p /nfs/data
-# echo "${storage_account}.file.core.windows.net:/${storage_account}/nfs/home /home aznfs vers=4.1,defaults 0 0" | \
-#   sudo tee -a /etc/fstab > /dev/null
-# systemctl daemon-reload
-# mount /home
+
+cat <<EOF | sudo tee -a /etc/fstab > /dev/null
+${storage_account}.file.core.windows.net:/${storage_account}/nfs /nfs aznfs vers=4.1,_netdev,sec=sys,soft,timeo=600,retrans=2,nofail,x-systemd.automount 0 0
+${storage_account}.file.core.windows.net:/${storage_account}/nfs/home /home aznfs vers=4.1,_netdev,sec=sys,soft,timeo=600,retrans=2,nofail 0 0
+EOF
+
+systemctl daemon-reload
+
+# Try mounts now (won't brick if Azure Files isn't ready yet)
+mount /nfs || true
+mount /home || true
 
 # ---------------------------------------------------------------------------------
 # Section 2: Configure AD as the identity provider
