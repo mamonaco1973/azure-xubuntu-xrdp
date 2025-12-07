@@ -49,24 +49,24 @@ else
   # ------------------------------------------------------------------------
   # Wait for SSH (port 22) on Xubuntu instance
   # ------------------------------------------------------------------------
-  max_attempts=30
+  max_attempts=60
   attempt=1
   sleep_secs=10
 
-  echo "INFO: Waiting for SSH (port 22) on $xubuntu_dns ..."
+  echo "NOTE: Waiting for SSH (port 22) on $xubuntu_dns ..."
 
   while [ "$attempt" -le "$max_attempts" ]; do
     if timeout 5 bash -c "echo > /dev/tcp/$xubuntu_dns/22" 2>/dev/null; then
-      echo "SUCCESS: SSH is reachable on $xubuntu_dns:22"
+      echo "NOTE: SSH is reachable on $xubuntu_dns:22"
       break
     fi
 
-    echo "INFO: Attempt $attempt/$max_attempts - SSH not ready, sleeping ${sleep_secs}s ..."
+    echo "WARNING: Attempt $attempt/$max_attempts - SSH not ready, sleeping ${sleep_secs}s ..."
     attempt=$((attempt + 1))
     sleep "$sleep_secs"
   done
 
   if [ "$attempt" -gt "$max_attempts" ]; then
-    echo "WARNING: Timed out waiting for SSH on $xubuntu_dns:22"
+    echo "ERROR: Timed out waiting for SSH on $xubuntu_dns:22"
   fi
 fi
