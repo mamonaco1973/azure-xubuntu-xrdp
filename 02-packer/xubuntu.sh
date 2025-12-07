@@ -3,16 +3,7 @@ set -euo pipefail
 
 # ================================================================================
 # Xubuntu Minimal Desktop + XFCE Enhancements Installation Script
-# Azure-Safe Version (Prevents Networking Failure on Reboot)
 # ================================================================================
-# Description:
-#   Installs Xubuntu minimal desktop and enforces Azure-safe networking by
-#   removing NetworkManager, preventing reinstallation, and configuring
-#   cloud-init + systemd-networkd with an Azure-friendly netplan file.
-#   This eliminates the well-known Azure issue where installing a desktop
-#   causes networking to fail after reboot (SSH/XRDP dead).
-# ================================================================================
-
 
 # ================================================================================
 # Step 1: Install Xubuntu minimal desktop environment
