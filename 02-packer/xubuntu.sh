@@ -13,6 +13,34 @@ sudo apt-get update -y
 sudo apt-get install -y xubuntu-desktop-minimal
 
 # ================================================================================
+# Step 1B: REMOVE NETWORKMANAGER (Critical for Azure Stability)
+# ================================================================================
+# Xubuntu pulls in NetworkManager. Azure cannot use it reliably — it conflicts
+# with cloud-init and prevents NIC initialization after reboot.
+
+sudo apt-get remove --purge -y network-manager
+sudo apt-get autoremove -y
+
+# ================================================================================
+# Step 1C: PREVENT NETWORKMANAGER FROM EVER BEING REINSTALLED
+# ================================================================================
+
+# 1. APT pinning — disallow installation entirely
+sudo tee /etc/apt/preferences.d/disable-network-manager >/dev/null <<EOF
+Package: network-manager
+Pin: release *
+Pin-Priority: -1
+
+Package: network-manager-*
+Pin: release *
+Pin-Priority: -1
+EOF
+
+# 2. Mask services — belt & suspenders protection
+sudo systemctl mask NetworkManager.service 2>/dev/null || true
+sudo systemctl mask NetworkManager-wait-online.service 2>/dev/null || true
+
+# ================================================================================
 # Step 2: Install clipboard utilities and XFCE enhancements
 # ================================================================================
 
