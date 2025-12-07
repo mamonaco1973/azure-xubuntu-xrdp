@@ -23,8 +23,7 @@ systemctl daemon-reload
 mount /nfs || true
 mkdir -p /nfs/home
 mkdir -p /nfs/data
-cp /home/* /nfs/home/ || true
-rm -rf /home/*
+mv /home /home.local
 ln -s /nfs/home /home
 
 #mount /home || true
