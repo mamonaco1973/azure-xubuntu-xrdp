@@ -36,18 +36,6 @@ resource "azurerm_subnet" "mini_ad_subnet" {
   address_prefixes     = ["10.0.0.128/25"]
   default_outbound_access_enabled = false
 }
-
-# --------------------------------------------------------------------------------------------------
-# Define Bastion Subnet (10.0.1.0/25)
-# NOTE: Bastion requires subnet name to be exactly "AzureBastionSubnet"
-# --------------------------------------------------------------------------------------------------
-resource "azurerm_subnet" "bastion_subnet" {
-  name                 = "AzureBastionSubnet"
-  resource_group_name  = azurerm_resource_group.ad.name
-  virtual_network_name = azurerm_virtual_network.ad_vnet.name
-  address_prefixes     = ["10.0.1.0/25"]
-}
-
 # --------------------------------------------------------------------------------------------------
 # Define Network Security Group (NSG) for VM subnet
 # --------------------------------------------------------------------------------------------------
