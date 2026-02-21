@@ -1,72 +1,85 @@
 #!/bin/bash
-# --------------------------------------------------------------------------------
-# Description:
-#   Queries Azure for public IP resources in a target resource group and prints
-#   their fully qualified DNS names. Replaces AWS EC2 lookups with Azure CLI.
+# ==============================================================================
+# validate.sh - Xubuntu Quick Start Validation (Azure)
+# ------------------------------------------------------------------------------
+# Purpose:
+#   - Queries Azure for expected Xubuntu Quick Start Public IP resources and
+#     prints quick-start endpoints for copy/paste access.
+#
+# Scope:
+#   - Looks up Public IP DNS FQDNs created by Terraform:
+#       - Windows admin host (management / test client): windows-vm-public-ip
+#       - Xubuntu desktop host: xubuntu-public-ip
+#
+# Fast-Fail Behavior:
+#   - Script exits immediately on command failure, unset variables,
+#     or failed pipelines.
 #
 # Requirements:
-#   - Azure CLI installed and logged in
-#   - Public IPs must exist in RG: xubuntu-project-rg
-#   - Public IP resource names:
-#       * windows-vm-public-ip
-#       * xubuntu-public-ip
-# --------------------------------------------------------------------------------
+#   - Azure CLI installed and authenticated (az login).
+#   - Resources deployed in the expected resource group.
+# ==============================================================================
 
-# --------------------------------------------------------------------------------
+set -euo pipefail
+
+# ------------------------------------------------------------------------------
 # Configuration
-# --------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------
 RESOURCE_GROUP="xubuntu-project-rg"
 
-# --------------------------------------------------------------------------------
-# Lookup Windows VM Public FQDN
-# --------------------------------------------------------------------------------
-windows_dns=$(az network public-ip show \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "windows-vm-public-ip" \
-  --query "dnsSettings.fqdn" \
-  --output tsv 2>/dev/null)
+WINDOWS_PIP_NAME="windows-vm-public-ip"
+XUBUNTU_PIP_NAME="xubuntu-public-ip"
 
-if [ -z "$windows_dns" ]; then
-  echo "ERROR: No DNS label found for windows-vm-public-ip"
+# ------------------------------------------------------------------------------
+# Helpers
+# ------------------------------------------------------------------------------
+az_trim() {
+  # Trims whitespace/newlines from az output.
+  xargs 2>/dev/null || true
+}
+
+get_public_fqdn_by_pip_name() {
+  local rg="$1"
+  local pip_name="$2"
+
+  az network public-ip show \
+    --resource-group "${rg}" \
+    --name "${pip_name}" \
+    --query "dnsSettings.fqdn" \
+    --output tsv 2>/dev/null | az_trim
+}
+
+# ------------------------------------------------------------------------------
+# Lookups
+# ------------------------------------------------------------------------------
+windows_fqdn="$(get_public_fqdn_by_pip_name "${RESOURCE_GROUP}" "${WINDOWS_PIP_NAME}")"
+xubuntu_fqdn="$(get_public_fqdn_by_pip_name "${RESOURCE_GROUP}" "${XUBUNTU_PIP_NAME}")"
+
+# ------------------------------------------------------------------------------
+# Quick Start Output
+# ------------------------------------------------------------------------------
+echo ""
+echo "============================================================================"
+echo "Xubuntu Quick Start - Validation Output (Azure)"
+echo "============================================================================"
+echo ""
+
+printf "%-28s %s\n" "NOTE: Resource Group:" "${RESOURCE_GROUP}"
+echo ""
+
+if [ -z "${windows_fqdn}" ]; then
+  printf "%-28s %s\n" "ERROR: Windows RDP FQDN:" \
+    "No FQDN found (Public IP: ${WINDOWS_PIP_NAME})"
 else
-  echo "NOTE: Windows Admin Instance FQDN: $windows_dns"
+  printf "%-28s %s\n" "NOTE: Windows RDP FQDN:" "${windows_fqdn}"
 fi
 
-# --------------------------------------------------------------------------------
-# Lookup Xubuntu Public FQDN
-# --------------------------------------------------------------------------------
-xubuntu_dns=$(az network public-ip show \
-  --resource-group "$RESOURCE_GROUP" \
-  --name "xubuntu-public-ip" \
-  --query "dnsSettings.fqdn" \
-  --output tsv 2>/dev/null)
-
-if [ -z "$xubuntu_dns" ]; then
-  echo "ERROR: No DNS label found for xubuntu-public-ip"
-else
-  echo "NOTE: Xubuntu Instance FQDN: $xubuntu_dns"
-
-  # ------------------------------------------------------------------------
-  # Wait for SSH (port 22) on Xubuntu instance
-  # ------------------------------------------------------------------------
-  max_attempts=60
-  attempt=1
-  sleep_secs=10
-
-  echo "NOTE: Waiting for SSH (port 22) on $xubuntu_dns ..."
-
-  while [ "$attempt" -le "$max_attempts" ]; do
-    if timeout 5 bash -c "echo > /dev/tcp/$xubuntu_dns/22" 2>/dev/null; then
-      echo "NOTE: SSH is reachable on $xubuntu_dns:22"
-      break
-    fi
-
-    echo "WARNING: Attempt $attempt/$max_attempts - SSH not ready, sleeping ${sleep_secs}s ..."
-    attempt=$((attempt + 1))
-    sleep "$sleep_secs"
-  done
-
-  if [ "$attempt" -gt "$max_attempts" ]; then
-    echo "ERROR: Timed out waiting for SSH on $xubuntu_dns:22"
-  fi
+if [ -z "${xubuntu_fqdn}" ]; then
+  printf "%-28s %s\n" "ERROR: Xubuntu FQDN:" \
+    "No FQDN found (Public IP: ${XUBUNTU_PIP_NAME})"
+  echo ""
+  exit 1
 fi
+
+printf "%-28s %s\n" "NOTE: Xubuntu Host:" "${xubuntu_fqdn}"
+echo ""
