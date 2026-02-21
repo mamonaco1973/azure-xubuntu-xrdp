@@ -22,6 +22,7 @@ systemctl stop unattended-upgrades || true
 systemctl stop apt-daily.service apt-daily-upgrade.service || true
 
 sudo apt-get update -y
+sudo apt-get upgrade -y
 
 # ------------------------------------------------------------------------------------------
 # Install Core AD, NSS, Samba, Kerberos, NFS, and Utility Packages
